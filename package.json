@@ -1,0 +1,19 @@
+{
+  "name": "groupee",
+  "version": "1.0.0",
+  "description": "",
+  "main": "groupee.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Anode LLC",
+  "license": "GPL3",
+  "dependencies": {
+    "mattermost-client": "^6.1.2",
+    "nthen": "^0.1.10"
+  },
+  "devDependencies": {
+    "flow-bin": "^0.126.1",
+    "jshint": "^2.11.1"
+  }
+}
