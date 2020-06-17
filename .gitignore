@@ -1,3 +1,4 @@
 /eventlog-*
 /config.js
 /node_modules
+/db.json
