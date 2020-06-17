@@ -1045,6 +1045,7 @@ const help = (ctx /*:Context_t*/, _words /*:Array<string>*/, m /*:Message_t*/) =
     for (const c in COMMANDS) {
         out.push(`**!${c}**: ${COMMANDS[c].help}`);
     }
+    out.push('For more information, see: https://github.com/anode-co/groupee/blob/master/readme.md');
     reply(ctx, out.join('\n'), m);
 };
 COMMANDS = {
