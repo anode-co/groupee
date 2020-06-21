@@ -105,7 +105,7 @@ as green squares. The membership and permissions are as follows:
 #### !tree example
 We'll consider the example of the ACME Company. In the ACME company, there are two teams, HR and Tech.
 Alice and Bob are founders, Catherine is the manager of HR and Dave is Catherine's assistant.
-Eleanor works in the technical team but is not a manager. The technical team has two projects a website
+Eleanor works in the technical team but is not a manager. The technical team has two projects, a website
 and a mobile app. Fred is an outside contractor who is working on the mobile app while Gloria is a
 contractor working on the website. The `!tree` as seen by Alice or Bob appears like this:
 
