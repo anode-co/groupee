@@ -95,7 +95,11 @@ current group in their membership, in which case those rooms must be deleted fir
 The `!tree` command shows a tree of people and groups and their relationships. People are shown as
 blue ovals while groups are shown as green squares. The membership and permissions are as follows:
 
-![legend](https://github.com/anode-co/groupee/raw/master/doc/groupee_legend.png "Link Meanings")
+<p align="center">
+<img src="https://github.com/anode-co/groupee/raw/master/doc/groupee_legend.png" width="40%">
+ <br/>
+ The color of the connecting line indicates the type of permission which a user or group has in a group.
+</p>
 
 #### !tree example
 We'll consider the example of the ACME Company. In the ACME company, there are two teams, HR and Tech.

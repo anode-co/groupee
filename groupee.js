@@ -69,12 +69,8 @@ type Context_t = {
 
 /*
 * TODO:
-* [ ] !tree (private message) -> show tree of groups
-* [ ] !tree ~group (private message) -> show abbreviated tree stemming from ~group
-* [ ] User invited to group while bot is off -> remove
-
-* !chan always invite the creator
-* !chan pm add creator to owners but not members
+* getChannel which queries if necessary
+* User invited to group while bot is off -> remove
 */
 
 const userName = ({ctx, userId}) => {
