@@ -111,29 +111,29 @@ contractor working on the website. The `!tree` as seen by Alice or Bob appears l
 ![tree example](https://github.com/anode-co/groupee/raw/master/doc/groupee_example.png "Tree example")
 
 * Alice and Bob are *owners* of the `~founders` group.
-* Catherine being a manager of the HR team, is an *owner* of the `~hr` group, but because owners of
-the `~founders` group are also owners of the `~hr` group, Alice and Bob can have ownership over the
+* Catherine being a manager of the HR team, is an *owner* of the `~hr` group, but because *owners* of
+the `~founders` group are also *owners* of the `~hr` group, Alice and Bob also have ownership over the
 `~hr` group.
-* The `~hr` and `~tech` groups owners and members are also owners and members of the `~team` group,
-so the `~team` group has Alice, Bob and Catherine as owners and has everyone except Fred and Gloria
-as members.
+* The *owners* and *members* of the `~hr` and `~tech` groups are also *owners* and *members* of the
+`~team` group, so the `~team` group has Alice, Bob and Catherine as *owners* and has everyone except
+Fred and Gloria as members.
 * Fred and Gloria have membership in `~tech-mobile_app` and `~tech-website` respectively, these are
 the only channels they are authorized to join, or even know about.
 * The chat `~team-managers_only` has as special status, all *owners* of `~team`
-(Alice, Bob and Catherine) are owners of `~team-managers_only` but members of `~team` are not allowed
+(Alice, Bob and Catherine) are *owners* of `~team-managers_only` but *members* of `~team` are not allowed
 to join.
 * `~hr-for_managers` is a special type of group owned by the *owners* of `~hr`. The *owners* of `~team`
 (i.e. managers) are allowed to join `~hr-for_managers` but in the channel `~hr-for_managers` they do not
 have *owner* status.
   * **Note:** Because the line between `~hr` and `~hr-for_managers` is pink, Catherine's assistant Dave
     does not see what happens in `~hr-for_managers`.
-  * **Note 2:** Because owners of `~founders` are *owners* of `~hr`, Alice and Bob are also owners of
-    `~hr-for_managers`.
+  * **Note 2:** Because *owners* of `~founders` are also *owners* of `~hr` (green connecting line),
+    Alice and Bob also have ownership of `~hr-for_managers`.
 * The `~fun` channel is a sort of free-for-all, with all *members* of `~team` being *owners* of `~fun`.
 * The last type if connection used in the `~golf_with_bob` channel. Bob is the *owner* of the
 `~golf_with_bob` channel and uses it to coordinate with members of the team who like to go golfing,
-everybody in the `~team` channel are welcome to join but the owners of `~team` are not automatically
-owners of `~golf_with_bob`.
+every *member* of the `~team` channel are welcome to join but the *owners* of `~team` do not
+automatically become *owners* of `~golf_with_bob`.
 
 ### Caviats
 You can't create a group which includes itself. While this might seem obvious, the potential for long
@@ -145,10 +145,12 @@ only solution is to use `!info` and `!allusers` to understand and then untangle 
 Groupee does not need to run on the same server as the mattermost instance, but it does need a full
 account, it doesn't work with a simple bot token. To set it up:
 
-1. Create a user for the bot
-2. Edit copy `config.example.js` to `config.js` and edit the config appropriately
-3. Run `node groupee.js`
-4. Send a private message with `!help` to groupee to see if it's up and running properly.
+1. Install graphviz - this tool uses the `dot` executable to render `!tree` graphs.
+2. Install the dependencies: `npm install`
+3. Create a user for the bot
+4. Edit copy `config.example.js` to `config.js` and edit the config appropriately
+5. Run `node groupee.js`
+6. Send a private message with `!help` to groupee to see if it's up and running properly.
 
 Groupee can run fine as an ordinary user, but if a user removes groupee from a channel, it will not be
 able to get back in unless you make groupee a system administrator in your mattermost system admin
@@ -156,14 +158,16 @@ control panel.
 
 Groupee stores their database as a simple json file which is written every update, however it also
 uses append-only-logs to log every database update that occurs so you can recreate the database at
-a specific time in the past by playing the logs through `log2db.js`. However, you must start from
+a specific time in the past by playing the logs through `tools/log2db.js`. However, you must start from
 the first logs that were ever created.
 
 ```bash
-cat ./eventlog-2020-06-16.ndjson ./eventlog-2020-06-17.ndjson | node ./log2db.js > ./newdb.json
+cat ./eventlog-2020-06-16.ndjson ./eventlog-2020-06-17.ndjson | node ./tools/log2db.js > ./newdb.json
 ```
 
-You can also convert a db file into a simple log which would result in the same db using `db2log.js`.
-This script reads the file `db.json` and outputs a log which if played through `log2db.js` would
-result in the same `db.json` file. This can be useful for compacting large history of logs but still
-having the ability to rollback time in case of damage to the bot's database (e.g. `!del` rampage).
+You can also convert a db file into a simple log which would result in the same db using
+`tools/db2log.js`.
+This script reads the file `db.json` and outputs a log which if played through `tools/log2db.js`
+would result in the same `db.json` file. This can be useful for compacting large history of logs
+but still having the ability to rollback time in case of damage to the bot's database (e.g. `!del`
+rampage).
