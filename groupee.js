@@ -6,6 +6,8 @@ const Crypto = require('crypto');
 const Mattermost = require('mattermost-client');
 const nThen = require('nthen');
 
+const Graph = require('./lib/graph.js');
+
 /*::
 type Db_t = {
     _chans: { [string]: {[string]:number} },
@@ -67,11 +69,12 @@ type Context_t = {
 
 /*
 * TODO:
-* [ ] !tree -> show tree of groups which have current group as a member
 * [ ] !tree (private message) -> show tree of groups
 * [ ] !tree ~group (private message) -> show abbreviated tree stemming from ~group
 * [ ] User invited to group while bot is off -> remove
-* [ ] !invite -> re-invite to all rooms which might have been left
+
+* !chan always invite the creator
+* !chan pm add creator to owners but not members
 */
 
 const userName = ({ctx, userId}) => {
@@ -249,9 +252,42 @@ const removeAllExcept = ({ctx, channelId, userIds, then}) => {
 
 
 
-
+//////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////
 //// channel db management
+//////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////
 
+const justificationsForUser = ({ctx, userId}) /*:{[string]:Array<string>}*/ => {
+    ctx = (ctx /*:Context_t*/);
+    userId = (userId /*:string*/);
+
+    // Flip the membership tree so it can be queried backwards
+    const groupsByMember = {};
+    for (const chName in ctx.db._chans) {
+        for (const member in ctx.db._chans[chName]) {
+            const g = groupsByMember[member] = groupsByMember[member] || {};
+            g[chName] = 1;
+        }
+    }
+
+    const result = {};
+    const more = [ { just: userId, chans: groupsByMember[userId] } ];
+    while (more.length) {
+        const { just, chans } = more.pop();
+        for (const ch in chans) {
+            if (result[ch]) {
+                result[ch].push(just);
+                continue;
+            }
+            result[ch] = [ just ];
+            const chans = groupsByMember[ch];
+            if (chans) { more.push({ just: ch, chans }); }
+        }
+    }
+
+    return result;
+};
 const getUserMembers = ({ctx, channelId}) => {
     ctx = (ctx /*:Context_t*/);
     channelId = (channelId /*:string*/);
@@ -305,9 +341,6 @@ const membershipJustifications = ({ctx, channelId, userOrChannel}) => {
     }
     return out;
 };
-// const ownershipJustification = ({ctx, channelId, userOrChannel}) => {
-//     return membershipJustification({ctx, channelId: channelId + '/owners', userOrChannel});
-// };
 const getDirectMembers = ({ctx, channelId}) => {
     ctx = (ctx /*:Context_t*/);
     return Object.keys(ctx.db._chans[channelId]);
@@ -424,10 +457,11 @@ const removeMembers = ({ctx, channelId, userOrChannelIds, then}) => {
     writeDb({ctx, then});
 };
 
-//// end of channel db management
-
-
-
+//////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////
+//// end channel db management
+//////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////
 
 const iWasRemoved = ({ctx, channelId, removedBy}) => {
     ctx = (ctx /*:Context_t*/);
@@ -454,7 +488,7 @@ const thenLeave = ({ctx, channelId}) => {
     }, 1000);
 };
 
-const iWasAdded = ({ctx, whoAddedMe, channelId}) => {
+const iWasAdded = ({ctx, channelId}) => {
     ctx = (ctx /*:Context_t*/);
     if (chanExists({ctx, channelId})) {
         console.error(`I was added to channel ${chanName({ctx, channelId})} which I already know about`);
@@ -473,20 +507,14 @@ const iWasAdded = ({ctx, whoAddedMe, channelId}) => {
             console.error('Got channel info');
             channelInfo = info;
             ctx.mm.channels[info.id] = info;
+            ctx.mut.channelIdForName[info.name] = info.id;
         })});
     }).nThen((w) => {
         if (!channelInfo) {
             console.error("For some reason channelInfo is missing");
             return;
         }
-        if (channelInfo.creator_id !== whoAddedMe) {
-            w.abort();
-            ctx.mm.postMessage(`I can only manage this channel if I'm invited ` +
-                `by the channel founder ${userName({ctx, userId: channelInfo.creator_id})}, ` +
-                `I am going to leave now.`, channelId);
-            thenLeave({ctx, channelId});
-            return;
-        } else if (channelInfo.type !== 'P') {
+        if (channelInfo.type !== 'P') {
             w.abort();
             ctx.mm.postMessage(`I can only manage channels which are set to private mode, ` +
                 `I am going to leave now.`, channelId);
@@ -502,14 +530,9 @@ const iWasAdded = ({ctx, whoAddedMe, channelId}) => {
                 thenLeave({ctx, channelId});
                 return;
             }
-            
-            const members = [];
-            for (const u of users) {
-                if (u.user_id !== whoAddedMe) {
-                    members.push(u.user_id);
-                }
-            }
-            registerChan({ctx, channelId, members, owners:[ whoAddedMe ], then: w((err) => {
+
+            const owners = users.map((u) => u.user_id);
+            registerChan({ctx, channelId, members:[], owners, then: w((err) => {
                 if (err) {
                     console.error("Error getting channel info", JSON.stringify(err));
                     ctx.mm.postMessage("Error storing database", channelId);
@@ -526,14 +549,29 @@ const userWasAdded = (ctx, m) => {
     const userId = m._post.props.addedUserId;
     const addedBy = m._post.props.userId;
     if (addedBy === ctx.mut.me) { return; }
-    if (userId === ctx.mut.me) { return void iWasAdded({ctx, whoAddedMe: addedBy, channelId}); }
+    if (userId === ctx.mut.me) { return void iWasAdded({ctx, channelId}); }
     if (!chanExists({ctx, channelId})) {
         // Getting messages about channels we don't track
         console.error(`Spurious add of ${userName({ctx, userId})} to ${chanName({ctx, channelId})}`);
         return;
     }
-    ctx.mm.postMessage(`@${userName({ctx, userId: addedBy})} This is a managed room, ` +
-        `you must be an owner and use !add to add users to it`, channelId);
+    if (isMemberOf({ctx, channelId, userOrChannel: userId})) {
+        // User was added to a channel by someone else, but they're authorized to be here so it's cool
+        return;
+    }
+    const out = [`@${userName({ctx, userId: addedBy})} this channel is a managed group`];
+    if (isOwnerOf({ctx, channelId, userOrChannel: addedBy})) {
+        const subs = {};
+        subChannels({ctx, channelId, out:subs});
+        const subCount = Object.keys(subs).length;
+        if (subCount) {
+            out.push(`, adding them to this group will confer access to ${subCount} other groups`);
+        }
+        out.push(`, use the command \`!add ${userName({ctx, userId: addedBy})} -invite\` to officially add them.`);
+    } else {
+        out.push(`and you don't have permission to add members, use \`!info\` to see who can.`);
+    }
+    ctx.mm.postMessage(out.join(''), channelId);
     removeFromChannel({ctx, channelId, userId, then:(err) => {
         if (err) {
             console.error(`Error removing user ${userName({ctx, userId: addedBy})}: ${String(err)}`);
@@ -556,19 +594,31 @@ const rmUser = (ctx, m) => {
     console.error(`${userName({ctx, userId:uid})} was removed from ${chanName({ctx, channelId:cn})}`);
 };
 
-const addAuthorized = ({ctx, channelId, then}) => {
-    const members = getUserMembers({ctx, channelId});
-    Array.prototype.push.apply(members, getUserMembers({ctx, channelId: channelId + '/owners'}));
-    addAllToChannel({ctx, channelId, userIds:[...new Set(members)], then});
-};
 const removeUnauthorized = ({ctx, channelId, then}) => {
     const members = getUserMembers({ctx, channelId});
     Array.prototype.push.apply(members, getUserMembers({ctx, channelId: channelId + '/owners'}));
     removeAllExcept({ctx, channelId, userIds:[...new Set(members)], then});
 };
 
+const getFlags = (ctx, words, m, flags) => {
+    const hasFlags = {};
+    for (let i = words.length - 1; i >= 0; i--) {
+        if (!words[i].startsWith('-')) { continue; }
+        const f = flags.indexOf(words[i].slice(1).toLowerCase());
+        if (f === -1) {
+            return void reply(ctx, `The flag ${words[i]} is not allowed with this command, ` +
+                `flags include [${flags.map((x)=>'-'+x).join(', ')}]`, m);
+        }
+        words.splice(i, 1);
+        hasFlags[flags[f]] = 1;
+    }
+    return hasFlags;
+};
+
 const chan = (ctx /*:Context_t*/, words /*:Array<string>*/, m /*:Message_t*/) => {
     const chan = ctx.mm.getChannelByID(m._post.channel_id);
+    const flags = getFlags(ctx, words, m, ['invite']);
+    if (!flags) { return; }
     let name = words.join('').trim().replace(/[^a-zA-Z0-9_]/g, '_');
     let displayName = name;
     if (!name) {
@@ -581,7 +631,6 @@ const chan = (ctx /*:Context_t*/, words /*:Array<string>*/, m /*:Message_t*/) =>
         // From a direct message, there's nothing to copy, the sender of the message becomes owner.
         displayName = '#' + displayName;
         owners.push(m._post.user_id);
-        members.push(m._post.user_id);
     } else if (chan.type === 'P') {
         displayName = chan.display_name + '-' + name;
         name = chan.name + '-' + name;
@@ -601,6 +650,8 @@ const chan = (ctx /*:Context_t*/, words /*:Array<string>*/, m /*:Message_t*/) =>
         type: 'P',
     };
     let channelId;
+    let toInvite;
+    const errors = {};
     nThen((w) => {
         apiCall(ctx, 'POST', `/channels`, chanData, w((data, _header) => {
             if (data.error) {
@@ -622,17 +673,45 @@ const chan = (ctx /*:Context_t*/, words /*:Array<string>*/, m /*:Message_t*/) =>
             }
         })});
     }).nThen((w) => {
-        addAuthorized({ctx, channelId, then:w((err, failures) => {
-            if (err) {
+        if (!flags.invite) {
+            toInvite = [ m._post.user_id ];
+            return;
+        }
+        // Need to get the list of people who are actually members of this channel rather than
+        // inviting everyone who has the right to be in the channel
+        getChannelUsers({ctx, channelId: chan.id, then: w((err, data) => {
+            if (err || !data) {
                 w.abort();
-                return void reply(ctx, `Error inviting: ${String(err)}`, m);
-            } else if (failures) {
-                w.abort();
-                return void reply(ctx, failures, m);
+                return void reply(ctx, `Error getting channel members: ${String(err)}`, m);
             }
+            // We run the chan members through the membership filter just in case there is someone
+            // who shouldn't be there, also it excludes the bot from trying to invite itself and
+            // getting an error.
+            toInvite = data.map((d) => d.user_id).filter((uid) =>
+                isMemberOf({ ctx, channelId: chan.id, userOrChannel: uid }));
         })});
-    }).nThen((_) => {
-        ok(ctx, m);
+    }).nThen((w) => {
+        let nt = nThen;
+        // Invite everyone to the new new channel
+        toInvite.forEach((u) => {
+            nt = nt((w) => {
+                addToChannel({ctx, channelId, userId:u, then:w((err) => {
+                    if (err) {
+                        errors[u] = err;
+                    }
+                })});
+            }).nThen;
+        });
+        nt(w());
+    }).nThen((w) => {
+        if (Object.keys(errors).length === 0) {
+            return void ok(ctx, m);
+        }
+        const failedToInvite = ['Failed to invite some people:'];
+        for (const id in errors) {
+            failedToInvite.push('* ' + userName({ctx, userId:id}));
+        }
+        reply(ctx, failedToInvite.join('\n'), m);
     });
 };
 
@@ -705,21 +784,11 @@ const checkAuth = (ctx /*:Context_t*/, channelId, m /*:Message_t*/) => {
     return true;
 };
 
-const areYouSure = (words) => {
-    let yes = false;
-    for (let i = words.length - 1; i >= 0; i--) {
-        if (words[i].toLowerCase() === '-yes') {
-            words.splice(i, 1);
-            yes = true;
-        }
-    }
-    return yes;
-};
-
 const deop = (ctx /*:Context_t*/, words /*:Array<string>*/, m /*:Message_t*/) => {
     const channelId = m._post.channel_id;
     if (!checkAuth(ctx, channelId, m)) { return; }
-    const yes = areYouSure(words);
+    const flags = getFlags(ctx, words, m, ['yes']);
+    if (!flags) { return; }
     const ownersToRemove = resolveGroups({ctx, words, m, filter: (word, id) => {
         if (!isDirectOwnerOf({ctx, channelId, userOrChannel: id})) {
             reply(ctx, `${word} is not an owner`, m);
@@ -737,7 +806,7 @@ const deop = (ctx /*:Context_t*/, words /*:Array<string>*/, m /*:Message_t*/) =>
         return void reply(ctx, `This action would result in the channel having no owners ` +
             `use !del to delete the channel instead.`, m);
     }
-    if (!yes) {
+    if (!flags.yes) {
         let retainsOwnership = false;
         for (const o in owners) {
             if (isMemberOf({ctx, channelId: o, userOrChannel: m._post.user_id})) {
@@ -759,9 +828,7 @@ const deop = (ctx /*:Context_t*/, words /*:Array<string>*/, m /*:Message_t*/) =>
     }});
 };
 
-const inviteToSubchannels = ({ctx, channelId, m}) => {
-    // Careful, each channel has sub-channels and there are members who may already have reason to
-    // be present and members who will gain reason to be present
+const inviteToSubchannels = ({ctx, channelId, newMembers, m}) => {
     const channels = {};
     subChannels({ctx, channelId, out:channels});
     const chanList = Object.keys(channels);
@@ -772,7 +839,7 @@ const inviteToSubchannels = ({ctx, channelId, m}) => {
     chanList.forEach((chanId) => {
         nt = nt((w) => {
             console.error(`Inviting to ${chanName({ctx, channelId:chanId})}`);
-            addAuthorized({ctx, channelId:chanId, then: w((err, failures) => {
+            addAllToChannel({ctx, channelId, userIds: newMembers, then: w((err, failures) => {
                 if (!err && failures) {
                     err = failures;
                 }
@@ -795,6 +862,8 @@ const inviteToSubchannels = ({ctx, channelId, m}) => {
 const op = (ctx /*:Context_t*/, words /*:Array<string>*/, m /*:Message_t*/) => {
     const channelId = m._post.channel_id;
     if (!checkAuth(ctx, channelId, m)) { return; }
+    const flags = getFlags(ctx, words, m, ['invite']);
+    if (!flags) { return; }
     const ownersToAdd = resolveGroups({ctx, words, m, filter: (word, id) => {
         if (isDirectOwnerOf({ctx, channelId, userOrChannel: id})) {
             reply(ctx, `${word} is already an owner`, m);
@@ -811,7 +880,8 @@ const op = (ctx /*:Context_t*/, words /*:Array<string>*/, m /*:Message_t*/) => {
         if (err) {
             return void reply(ctx, `Error storing database: ${String(err)}`, m);
         } else {
-            inviteToSubchannels({ctx, channelId, m});
+            if (!flags.invite) { return void ok(ctx, m); }
+            inviteToSubchannels({ctx, channelId, newMembers: ownersToAdd, m});
         }
     }});
 };
@@ -825,11 +895,12 @@ const printMembershipJustifications = ({ctx, channelId, userOrChannel}) => {
 const add = (ctx /*:Context_t*/, words /*:Array<string>*/, m /*:Message_t*/) => {
     const channelId = m._post.channel_id;
     if (!checkAuth(ctx, channelId, m)) { return; }
-    const yes = areYouSure(words);
+    const flags = getFlags(ctx, words, m, ['yes','invite']);
+    if (!flags) { return; }
     const membersToAdd = resolveGroups({ctx, words, m, filter: (word, id) => {
         if (isDirectMemberOf({ctx, channelId, userOrChannel: id})) {
             reply(ctx, `${word} is already in this channel, perhaps they need an !invite ?`, m);
-        } else if (!yes && isMemberOf({ctx, channelId, userOrChannel: id})) {
+        } else if (!flags.yes && isMemberOf({ctx, channelId, userOrChannel: id})) {
             const just = printMembershipJustifications({ctx, channelId, userOrChannel: id});
             reply(ctx, `${word} is already a member this channel via their membership` +
                 ((just.length > 1) ? 's' : '') +
@@ -852,8 +923,9 @@ const add = (ctx /*:Context_t*/, words /*:Array<string>*/, m /*:Message_t*/) => 
                 return void reply(ctx, `Error storing database: ${String(err)}`, m);
             }
         })});
-    }).nThen((w) => {
-        inviteToSubchannels({ctx, channelId, m});
+    }).nThen((_) => {
+        if (!flags.invite) { return void ok(ctx, m); }
+        inviteToSubchannels({ctx, channelId, newMembers: membersToAdd, m});
     });
 };
 
@@ -940,7 +1012,7 @@ const info = (ctx /*:Context_t*/, words /*:Array<string>*/, m /*:Message_t*/) =>
 
     const out = ['Channel info:', '* Owners'];
     for (const owner of getDirectOwners({ctx, channelId})) {
-        console.error(`owner: ${owner} ${name({ctx, id:owner})}`);
+        //console.error(`owner: ${owner} ${name({ctx, id:owner})}`);
         //const just = ownershipJustification({ctx, channelId, userOrChannel: owner});
         const just = printMembershipJustifications({
             ctx, channelId: channelId + '/owners', userOrChannel: owner}).filter((m) => {
@@ -1009,15 +1081,19 @@ const evict = (ctx /*:Context_t*/, words /*:Array<string>*/, m /*:Message_t*/) =
     }});
 };
 
-const del = (ctx /*:Context_t*/, _words /*:Array<string>*/, m /*:Message_t*/) => {
-    const channelId = m._post.channel_id;
-    if (!checkAuth(ctx, channelId, m)) { return; }
-
+const directSubchans = ({ctx, channelId}) => {
     const channels = {};
     directSubchannels({ctx, channelId: channelId + '/owners', out:channels});
     directSubchannels({ctx, channelId, out:channels});
     delete channels[channelId];
-    const chanList = Object.keys(channels);
+    return Object.keys(channels);
+};
+
+const del = (ctx /*:Context_t*/, _words /*:Array<string>*/, m /*:Message_t*/) => {
+    const channelId = m._post.channel_id;
+    if (!checkAuth(ctx, channelId, m)) { return; }
+
+    const chanList = directSubchans({ctx, channelId});
     if (chanList.length) {
         const out = chanList.map((c) => `* ${name({ctx, id: c})}`);
         out.unshift(`Cannot delete ${chanName({ctx, channelId})} because there are channels which include it:`);
@@ -1039,11 +1115,174 @@ const del = (ctx /*:Context_t*/, _words /*:Array<string>*/, m /*:Message_t*/) =>
     }});
 };
 
+const mychans = (ctx /*:Context_t*/, _words /*:Array<string>*/, m /*:Message_t*/) => {
+    const uid = m._post.user_id;
+    const justifications = justificationsForUser({ctx, userId: uid});
+    // Merge channels with owner groups since this just creates a ton of noise
+    for (const r in justifications) {
+        if (r.endsWith('/owners')) {
+            delete justifications[r.replace('/owners', '')];
+        }
+    }
+    const out = ['Your channels:'];
+    Object.keys(justifications).forEach((j) => {
+        out.push(`* ${name({ctx, id:j})} *via* ${justifications[j].map((ch) => {
+            if (ch === uid) { return '*direct membership*'; }
+            return name({ctx, id: ch});
+        }).join(' *and* ')}`);
+    });
+    return void reply(ctx, out.join('\n'), m);
+};
+
+const admin = (ctx /*:Context_t*/, words /*:Array<string>*/, m /*:Message_t*/) => {
+    if (ctx.cfg.admins.indexOf(m._post.user_id) === -1) {
+        return void reply(ctx, `You don't have admin privileges`, m);
+    }
+    if (words[0] === 'dropchan') {
+        if (!ctx.db._chans[words[1]]) {
+            return void reply(ctx, `The channel id:${words[1]} is not known, you must specify channel by id`, m);
+        }
+        const subchans = directSubchans({ctx, channelId: words[1]});
+        if (subchans.length) {
+            return void reply(ctx, `This channel has subchans, please drop ${subchans.join()} first`, m);
+        }
+        dropChan({ctx, channelId: words[1], then: (err) => {
+            if (err) {
+                return void reply(ctx, `Error deleting chan from db: ${String(err)}`, m);
+            }
+            ok(ctx, m);
+        }});
+    }
+};
+
+const join = (ctx /*:Context_t*/, words /*:Array<string>*/, m /*:Message_t*/) => {
+    const userId = m._post.user_id;
+    const addMeHere = resolveGroups({ctx, words, m, filter: (word, id) => {
+        if (!isMemberOf({ctx, channelId: id, userOrChannel: userId})) {
+            reply(ctx, `${word} is not a channel you are authorized to be in`, m);
+        } else {
+            return true;
+        }
+        return false;
+    }});
+    if (!addMeHere) { return; }
+    const errors = [];
+    let nt = nThen;
+    addMeHere.forEach((channelId) => {
+        nt = nt((w) => {
+            console.error(`Joining ${name({ctx, id:userId})} to ${chanName({ctx, channelId})}`);
+            addAllToChannel({ctx, channelId, userIds:[ userId ], then: w((err, failures) => {
+                if (!err && failures) {
+                    err = failures;
+                }
+                if (err) {
+                    errors.push(`Joining ${chanName({ctx, channelId})} ` + err);
+                }
+            })});
+        }).nThen;
+    });
+    nt((_) => {
+        if (errors.length) {
+            return void reply(ctx, errors.join('\n'), m);
+        } else {
+            return void ok(ctx, m);
+        }
+    });
+};
+
+const cleanName = (s) => {
+    const clean = s.replace(/[^a-zA-Z0-9_-]/g, '');
+    const pretty = s.replace(/["\\]/g, '');
+    if (s[0] === '~') {
+        return `chan("${pretty}")`;
+    } else {
+        return `user("${pretty}")`;
+    }
+};
+
+const uploadFile = (ctx, channel_id, file, callback) => {
+    const formData = {
+        channel_id: channel_id,
+        files: file,
+        //client_ids: Crypto.randomBytes(16).toString('hex'),
+    };
+    return apiCall(ctx, { method: 'POST'}, '/files', formData, (data, _headers) => {
+        return callback(data);
+    });
+};
+
+const tree = (ctx /*:Context_t*/, words /*:Array<string>*/, m /*:Message_t*/) => {
+    const uid = m._post.user_id;
+
+    // In this case, we're just going to get the list of channels
+    // then we'll get direct members of each one and build a graph
+    const channels = Object.keys(justificationsForUser({ctx, userId: uid}));
+
+    // This is a subset of the database _chans but only with channels
+    // which this user has the right to know about
+    const chans = {};
+    for (const c of channels) {
+        chans[c] = getDirectMembers({ctx, channelId: c});
+    }
+    const out = [];
+    for (const c of channels) {
+        const cname = name({ctx, id:c});
+        for (const m of getDirectMembers({ctx, channelId: c})) {
+            out.push([ name({ctx, id:m}), cname ]);
+        }
+    }
+    if (!out.length) {
+        return void reply(ctx, 'You are not a member of any groups so the tree is empty', m);
+    }
+    let imgBuf;
+    let fileId;
+    nThen((w) => {
+        Graph.makegraph(out, w((code, out) => {
+            if (code !== 0) {
+                w.abort();
+                return void reply(ctx, 'Error: Graphviz exited with code ' + code, m);
+            }
+            imgBuf = out;
+        }));
+    }).nThen((w) => {
+        ctx.mm.uploadFile(m._post.channel_id, {
+            value: imgBuf,
+            options: {
+                filename: 'graph.png',
+            },
+        }, w((data) => {
+            if (!data) {
+            } else if (!data.file_infos) {
+            } else if (!data.file_infos[0]) {
+            } else if (!data.file_infos[0].id) {
+            } else {
+                fileId = data.file_infos[0].id;
+                //console.log('image upload', data);
+                return;
+            }
+            w.abort();
+            return void reply(ctx, 'Error uploading picture ' + data.error, m);
+        }));
+    }).nThen((_) => {
+        ctx.mm.postMessage({
+            message: 'This is your view of the membership tree, see ' +
+              '[!tree documentation](https://github.com/anode-co/groupee#tree) ' +
+              'for explaination of what the different colored lines mean.',
+            file_ids: [ fileId ],
+        }, m._post.channel_id);
+    });
+};
+
 let COMMANDS;
+let COMMANDS_PVT;
 const help = (ctx /*:Context_t*/, _words /*:Array<string>*/, m /*:Message_t*/) => {
     let out = [`To send a command, use: !<command> <arg1> <arg2> ...`];
     for (const c in COMMANDS) {
         out.push(`**!${c}**: ${COMMANDS[c].help}`);
+    }
+    out.push(`\nIn a private chat with me, you can also use the commands:`);
+    for (const c in COMMANDS_PVT) {
+        out.push(`**!${c}**: ${COMMANDS_PVT[c].help}`);
     }
     out.push('For more information, see: https://github.com/anode-co/groupee/blob/master/readme.md');
     reply(ctx, out.join('\n'), m);
@@ -1060,23 +1299,36 @@ COMMANDS = {
     del:       { cmd: del,    argc:  0, help: 'Delete the current channel'},
     help:      { cmd: help,   argc:  0, help: 'Display this message' },
 };
+COMMANDS_PVT = {
+    tree:      { cmd: tree,   argc: 0,  help: 'Display a tree of groups which you are in'},
+    mychans:   { cmd: mychans, argc: 0, help: 'Display a list of channels which you are in or have the right to be in'},
+    join:      { cmd: join,   argc: -1, help: 'Get added to one or more channels which you have the right to be in'},
+    //admin:     { cmd: admin,  argc: -1, help: 'Administrative commands (dropchan)'},
+};
 
 const message = (ctx, m /*:Message_t*/) => {
     if (m._post.type === 'system_add_to_channel') {
         return void userWasAdded(ctx, m);
     }
+    if (m._post.user_id === ctx.mut.me) { return; }
     const words = m._post.message.split(' ').filter((w) => w !== '');
     if (words.length < 1) {
         console.log('empty message');
         return;
     }
-    if (words[0].indexOf('!') !== 0) { return; }
-    const cmdName = words.shift().slice(1);
-    const c = COMMANDS[cmdName];
-    if (!c) {
-        console.log(cmdName, 'is not a registered command');
+    const direct = (ctx.mm.getChannelByID(m._post.channel_id).type === 'D')
+    const bang = (words[0].indexOf('!') === 0);
+    const cmdName = words.shift().replace(/^!/, '');
+
+    let c = COMMANDS[cmdName];
+    if (bang && c) {
+    } else if (bang && direct && COMMANDS_PVT[cmdName]) {
+        c = COMMANDS_PVT[cmdName];
+    } else {
+        if (direct) { reply(ctx, "I don't understand what you said, use !help for a list commands", m); }
         return;
     }
+
     if (Array.isArray(c.argc)) {
         let ok = false;
         for (const count of c.argc) {
@@ -1138,6 +1390,10 @@ const connect = (ctx) => {
         }
     });
     ctx.mm.on('raw_message', (m) => {
+        if (m.data && m.data.channel_type === 'D') {
+            console.log('private event', m);
+            return;
+        }
         if (m.data && m.data.text && m.data.text === 'pong') {
         } else if ([
             'hello',
@@ -1148,6 +1404,8 @@ const connect = (ctx) => {
             'status_change',
             'post_edited',
             'channel_deleted',
+            'user_added',      // added to a channel
+            'channel_created', // we'll see this when we create a channel
         ].indexOf(m.event) > -1) {
         } else {
             console.log('raw_message');
@@ -1155,6 +1413,7 @@ const connect = (ctx) => {
         }
     });
     ctx.mm.on('user_removed', (m) => rmUser(ctx, m));
+    ctx.mm.on('channel_created', (_) => computeChannelNames({ctx}));
     ctx.mm.on('channel_updated', (m) => {
         const c = JSON.parse(m.data.channel);
         const old = ctx.mm.channels[c.id];

@@ -91,6 +91,46 @@ because if you are an owner of the channel, then it will destroy the channel wit
 There is one case when `!del` will not work, that is if there are other groups which include the
 current group in their membership, in which case those rooms must be deleted first.
 
+### !tree
+The `!tree` command shows a tree of people and groups and their relationships. People are shown as
+blue ovals while groups are shown as green squares. The membership and permissions are as follows:
+
+![legend](https://github.com/anode-co/groupee/raw/master/doc/groupee_legend.png "Link Meanings")
+
+#### !tree example
+We'll consider the example of the ACME Company. In the ACME company, there are two teams, HR and Tech.
+Alice and Bob are founders, Catherine is the manager of HR and Dave is Catherine's assistant.
+Eleanor works in the technical team but is not a manager. The technical team has two projects a website
+and a mobile app. Fred is an outside contractor who is working on the mobile app while Gloria is a
+contractor working on the website. The `!tree` as seen by Alice or Bob appears like this:
+
+![tree example](https://github.com/anode-co/groupee/raw/master/doc/groupee_example.png "Tree example")
+
+* Alice and Bob are *owners* of the `~founders` group.
+* Catherine being a manager of the HR team, is an *owner* of the `~hr` group, but because owners of
+the `~founders` group are also owners of the `~hr` group, Alice and Bob can have ownership over the
+`~hr` group.
+* The `~hr` and `~tech` groups owners and members are also owners and members of the `~team` group,
+so the `~team` group has Alice, Bob and Catherine as owners and has everyone except Fred and Gloria
+as members.
+* Fred and Gloria have membership in `~tech-mobile_app` and `~tech-website` respectively, these are
+the only channels they are authorized to join, or even know about.
+* The chat `~team-managers_only` has as special status, all *owners* of `~team`
+(Alice, Bob and Catherine) are owners of `~team-managers_only` but members of `~team` are not allowed
+to join.
+* `~hr-for_managers` is a special type of group owned by the *owners* of `~hr`. The *owners* of `~team`
+(i.e. managers) are allowed to join `~hr-for_managers` but in the channel `~hr-for_managers` they do not
+have *owner* status.
+  * **Note:** Because the line between `~hr` and `~hr-for_managers` is pink, Catherine's assistant Dave
+    does not see what happens in `~hr-for_managers`.
+  * **Note 2:** Because owners of `~founders` are *owners* of `~hr`, Alice and Bob are also owners of
+    `~hr-for_managers`.
+* The `~fun` channel is a sort of free-for-all, with all *members* of `~team` being *owners* of `~fun`.
+* The last type if connection used in the `~golf_with_bob` channel. Bob is the *owner* of the
+`~golf_with_bob` channel and uses it to coordinate with members of the team who like to go golfing,
+everybody in the `~team` channel are welcome to join but the owners of `~team` are not automatically
+owners of `~golf_with_bob`.
+
 ### Caviats
 You can't create a group which includes itself. While this might seem obvious, the potential for long
 chains of inclusions into groups makes it rather likely to end up wanting to include a group into

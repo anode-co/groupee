@@ -1,0 +1,39 @@
+digraph {
+    rankdir=TD
+    node[style=invis, label=""]
+    l0
+    r0
+
+    node[style=invis, label="", height=0.3]
+    l0 -> la -> lb -> lc -> ld -> le -> lf -> lg[style=invis]
+    r0 -> ra -> rb -> rc -> rd -> re -> rf -> rg[style=invis]
+
+    subgraph a {
+        rank="same"
+        la -> ra[color=red, label="Person A is owner of group B"]
+    }
+    subgraph b {
+        rank="same"
+        lb -> rb[label="Person A is member of group B"]
+    }
+    subgraph c {
+        rank="same"
+        lc -> rc[style=bold color=red label="Every member of group A is an owner of group B"]
+    }
+    subgraph d {
+        rank="same"
+        ld -> rd[style=bold color=green label="Every owner of group A is an owner of group B\nand every member of group A is a member of group B"]
+    }
+    subgraph e {
+        rank="same"
+        le -> re[style=bold color=pink label="Every owner of group A is an owner of group B,\nbut members of group A are not invited"]
+    }
+    subgraph f {
+        rank="same"
+        lf -> rf[style=bold color=blue label="Every owner of group A is a member of group B"]
+    }
+    subgraph g {
+        rank="same"
+        lg -> rg[style=bold color=brown label="Every member of group A is a member of group B,\nbut owners of group A have no special privileges"]
+    }
+}
