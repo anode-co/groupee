@@ -92,8 +92,9 @@ There is one case when `!del` will not work, that is if there are other groups w
 current group in their membership, in which case those rooms must be deleted first.
 
 ### !tree
-The `!tree` command shows a tree of people and groups and their relationships. People are shown as
-blue ovals while groups are shown as green squares. The membership and permissions are as follows:
+The `!tree` command can be used in a private message to groupee, it will generate a graph to show
+the people and groups and their relationships. People are shown as blue ovals while groups are shown
+as green squares. The membership and permissions are as follows:
 
 <p align="center">
 <img src="https://github.com/anode-co/groupee/raw/master/doc/groupee_legend.png" width="40%">
@@ -134,6 +135,28 @@ have *owner* status.
 `~golf_with_bob` channel and uses it to coordinate with members of the team who like to go golfing,
 every *member* of the `~team` channel are welcome to join but the *owners* of `~team` do not
 automatically become *owners* of `~golf_with_bob`.
+
+## !mychans and !join
+The default behavior of groupee is not to automatically add everyone to channels just because they're
+authorized to be there. It is thought that the person who added you to the channel should invite you
+manually if they want your attention. However, if you want to see all of the channels which you *can*
+join, and potentially join them, you can use the `!mychans` and `!join` commands.
+
+The `!mychans` command will show a list of all channels which you are authorized to be in, it will
+also show the reason why you are authorized to be there. If, to take our earlier example, Catherine
+were to use the `!mychans` command, she would see:
+
+* ~hr/owners *via* *direct membership*
+* ~team/owners *via* ~hr/owners
+* ~hr-for_managers/owners *via* ~hr/owners
+* ~team-managers_only/owners *via* ~team/owners
+* ~fun/owners *via* ~team
+* ~golf_with_bob *via* ~team
+
+This means she is an *owner* of `~hr`, `~team`, `~hr-for_managers`, `~team-managers_only` and `~fun`,
+and she is a *member* of `~golf_with_bob`. She can then use the `!join` command to join any one of
+those channels if she is not currently in them. For example: `!join golf_with_bob`, note that the tilde
+(~) is optional in any command for interacting with a channel.
 
 ### Caviats
 You can't create a group which includes itself. While this might seem obvious, the potential for long

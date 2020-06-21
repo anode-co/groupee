@@ -50,7 +50,23 @@ type Message_t = {
       pending_post_id: string,
       reply_count: number,
       metadata: Object
-  }
+  },
+  _channel: {
+    "id": string,
+    "create_at": number,
+    "update_at": number,
+    "delete_at": number,
+    "team_id": string,
+    "type": string,
+    "display_name": string,
+    "name": string,
+    "header": string,
+    "purpose": string,
+    "last_post_at": number,
+    "total_msg_count": number,
+    "extra_update_at": number,
+    "creator_id": string,
+  },
 };
 type Context_t = {
     db: Db_t,
@@ -69,7 +85,6 @@ type Context_t = {
 
 /*
 * TODO:
-* getChannel which queries if necessary
 * User invited to group while bot is off -> remove
 */
 
@@ -484,71 +499,64 @@ const thenLeave = ({ctx, channelId}) => {
     }, 1000);
 };
 
-const iWasAdded = ({ctx, channelId}) => {
+const channelById = (ctx, channelId, then) => {
+    const chan = ctx.mm.getChannelByID(channelId);
+    if (chan) { return void then(null, chan); }
+    getChannelInfo({ ctx, channelId, then: (err, info) => {
+        if (err || !info) {
+            return void then(err);
+        }
+        ctx.mm.channels[info.id] = info;
+        ctx.mut.channelIdForName[info.name] = info.id;
+    }});
+};
+
+const iWasAdded = ({ctx, chan}) => {
     ctx = (ctx /*:Context_t*/);
-    if (chanExists({ctx, channelId})) {
-        console.error(`I was added to channel ${chanName({ctx, channelId})} which I already know about`);
+    if (chanExists({ctx, channelId: chan.id})) {
+        console.error(`I was added to channel ~${chan.name} which I already know about`);
         return;
     }
-    let channelInfo;
     nThen((w) => {
-        getChannelInfo({ ctx, channelId, then: w((err, info) => {
-            if (err || !info) {
-                w.abort();
-                console.error("Error getting channel info", JSON.stringify(err));
-                ctx.mm.postMessage("Error getting channel info", channelId);
-                thenLeave({ctx, channelId});
-                return;
-            }
-            console.error('Got channel info');
-            channelInfo = info;
-            ctx.mm.channels[info.id] = info;
-            ctx.mut.channelIdForName[info.name] = info.id;
-        })});
-    }).nThen((w) => {
-        if (!channelInfo) {
-            console.error("For some reason channelInfo is missing");
-            return;
-        }
-        if (channelInfo.type !== 'P') {
+        if (chan.type !== 'P') {
             w.abort();
             ctx.mm.postMessage(`I can only manage channels which are set to private mode, ` +
-                `I am going to leave now.`, channelId);
-            thenLeave({ctx, channelId});
+                `I am going to leave now.`, chan.id);
+            thenLeave({ctx, channelId: chan.id});
             return;
         }
         console.error('getting channel users');
-        getChannelUsers({ctx, channelId, then:w((err, users) => {
+        getChannelUsers({ctx, channelId: chan.id, then:w((err, users) => {
             if (err || !users) {
                 w.abort();
                 console.error("Error getting channel info", JSON.stringify(err));
-                ctx.mm.postMessage("Error getting channel member list", channelId);
-                thenLeave({ctx, channelId});
+                ctx.mm.postMessage("Error getting channel member list", chan.id);
+                thenLeave({ctx, channelId: chan.id});
                 return;
             }
 
             const owners = users.map((u) => u.user_id);
-            registerChan({ctx, channelId, members:[], owners, then: w((err) => {
+            registerChan({ctx, channelId: chan.id, members:[], owners, then: w((err) => {
                 if (err) {
                     console.error("Error getting channel info", JSON.stringify(err));
-                    ctx.mm.postMessage("Error storing database", channelId);
+                    ctx.mm.postMessage("Error storing database", chan.id);
                     return;
                 }
-                ctx.mm.postMessage("This channel is now a managed group " + emoji_party, channelId);
+                ctx.mm.postMessage("This channel is now a managed group " + emoji_party, chan.id);
             })});
         })});
     });
 };
 
 const userWasAdded = (ctx, m) => {
-    const channelId = m._post.channel_id;
+    const channelId = m._channel.id;
     const userId = m._post.props.addedUserId;
     const addedBy = m._post.props.userId;
     if (addedBy === ctx.mut.me) { return; }
-    if (userId === ctx.mut.me) { return void iWasAdded({ctx, channelId}); }
+    if (userId === ctx.mut.me) { return void iWasAdded({ctx, chan:m._channel}); }
     if (!chanExists({ctx, channelId})) {
         // Getting messages about channels we don't track
-        console.error(`Spurious add of ${userName({ctx, userId})} to ${chanName({ctx, channelId})}`);
+        console.error(`Spurious add of ${userName({ctx, userId})} to ${m._channel.name}`);
         return;
     }
     if (isMemberOf({ctx, channelId, userOrChannel: userId})) {
@@ -575,6 +583,7 @@ const userWasAdded = (ctx, m) => {
     }});
 };
 const rmUser = (ctx, m) => {
+    m._channel = null; // it is not provided here
     const cn = m.data.channel_id;
     const uid = m.broadcast.user_id;
     const rmBy = m.data.remover_id;
@@ -612,7 +621,7 @@ const getFlags = (ctx, words, m, flags) => {
 };
 
 const chan = (ctx /*:Context_t*/, words /*:Array<string>*/, m /*:Message_t*/) => {
-    const chan = ctx.mm.getChannelByID(m._post.channel_id);
+    const chan = m._channel;
     const flags = getFlags(ctx, words, m, ['invite']);
     if (!flags) { return; }
     let name = words.join('').trim().replace(/[^a-zA-Z0-9_]/g, '_');
@@ -1040,7 +1049,7 @@ const allusers = (ctx /*:Context_t*/, words /*:Array<string>*/, m /*:Message_t*/
             return reply(ctx, `${words[0]} is not a known channel`, m);
         }
         channelId = cid;
-    } else if (ctx.mm.getChannelByID(channelId).type === 'D') {
+    } else if (m._channel.type === 'D') {
         out.push(`All users in system:`);
         for (const u in ctx.mut.userIdForName) {
             out.push('* **' + u + '**');
@@ -1312,7 +1321,7 @@ const message = (ctx, m /*:Message_t*/) => {
         console.log('empty message');
         return;
     }
-    const direct = (ctx.mm.getChannelByID(m._post.channel_id).type === 'D')
+    const direct = (m._channel.type === 'D');
     const bang = (words[0].indexOf('!') === 0);
     const cmdName = words.shift().replace(/^!/, '');
 
@@ -1452,7 +1461,14 @@ const connect = (ctx) => {
             } else if (typeof obj.reply_count !== 'number') {
             } else {
                 m._post = obj;
-                return void message(ctx, m);
+                return void channelById(ctx, m._post.channel_id, (err, ret) => {
+                    if (err) {
+                        console.error('channelById', err);
+                        return;
+                    }
+                    m._channel = ret;
+                    return void message(ctx, m);
+                });
             }
         }
         console.log('unexpected message structure', m);
