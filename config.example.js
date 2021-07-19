@@ -4,4 +4,6 @@ module.exports = {
     passwd: 'bot_password',
     server: 'your.mattermost.server.tld',
     team: 'yourteam',
+    wssPort: 443,
+    httpPort: 80,
 };

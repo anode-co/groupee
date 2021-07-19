@@ -158,7 +158,7 @@ and she is a *member* of `~golf_with_bob`. She can then use the `!join` command 
 those channels if she is not currently in them. For example: `!join golf_with_bob`, note that the tilde
 (~) is optional in any command for interacting with a channel.
 
-### Caviats
+### Caveats
 You can't create a group which includes itself. While this might seem obvious, the potential for long
 chains of inclusions into groups makes it rather likely to end up wanting to include a group into
 another group which transitively includes the first. Groupee will refuse to let you do that and the

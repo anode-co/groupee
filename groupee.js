@@ -3,7 +3,7 @@
 const Fs = require('fs');
 const Crypto = require('crypto');
 
-const Mattermost = require('mattermost-client');
+const Mattermost = require('./mattermost-client/src/client');
 const nThen = require('nthen');
 
 const Graph = require('./lib/graph.js');
@@ -1278,6 +1278,181 @@ const tree = (ctx /*:Context_t*/, words /*:Array<string>*/, m /*:Message_t*/) =>
     });
 };
 
+const isValidateUserIdFormat = (userId) => {
+    if (typeof userId !== 'string') {
+        return false;
+    }
+
+    if (
+        // A valid user id counts exactly 26 characters
+        // and it contains only letters or numbers
+        // @see https://github.com/thierrymarianne/contrib-matterfoss/blob/06b5ebb69b6c04d235da576d869e2e469223ccc9/model/utils.go#L558-L570
+        // @see https://github.com/thierrymarianne/contrib-matterfoss/blob/06b5ebb69b6c04d235da576d869e2e469223ccc9/model/user.go#L263-L265
+        userId.length !== 26
+        || !userId.split().every(c => new RegExp('[a-zA-Z0-9]').test(c))
+    ) {
+        return false;
+    }
+
+    return true;
+};
+
+const findTeamByName = (ctx /*:Context_t*/) /*: Promise<any>*/ => {
+    const uri = `/teams/name/${ctx.cfg.team}`;
+
+    return new Promise((resolve, reject) => {
+        try {
+            apiCall(
+                ctx,
+                'GET',
+                uri,
+                null,
+                (team, _) => resolve(team)
+            );
+        } catch (e) {
+            reject(e);
+        }
+    });
+};
+
+const getMainChannelsNames = (ctx /*:Context_t*/, teamId) /*: Promise<any>*/ => {
+    const uri = `/teams/${teamId}/channels`;
+
+    return new Promise((resolve, reject) => {
+        try {
+            apiCall(ctx,  'GET', uri, null, (mainChannels, _) => {
+                if (mainChannels.length === 0) {
+                    throw 'No main channel name has been defined. See config.js.';
+                }
+                
+                resolve(mainChannels
+                    .map(channel => channel.name));
+            });
+        } catch (e) {
+            reject(e);
+        }
+    });
+};
+
+const searchUserByTerm = (ctx, term, page = 0) => {
+    const uri = '/users/search';
+
+    return new Promise((resolve, reject) => {
+        try {
+            apiCall(ctx, 'POST', uri, {
+                page,
+                per_page: 200,
+                term
+            }, (data, _) => {
+                if (!Array.isArray(data) || data.length !== 1) {
+                    reject(`Ambiguous command. Can not find user by "${term}" term`);
+                }
+
+                resolve(data[0]);
+            });
+        } catch (e) {
+            reject(e);
+        }
+    });
+};
+
+const demoteUserHavingUserId = (ctx /*:Context_t*/, userId /*:string */, then) /*: Promise<any>*/ => {
+    return new Promise((resolve, reject) => {
+        try {
+            apiCall(
+                ctx,
+                'POST',
+                `/channels/${userId}/demote`,
+                 null,
+                (data, headers) => {
+                    resolve(data);
+                    if (typeof then === 'function') {
+                        then(data, headers);
+                    }
+                }
+            );
+        } catch (e) {
+            reject(e);
+        }
+    });
+};
+
+const formatWelcomeMessage = (message, params) => {
+    return message
+        .replace(
+            '{{ screen_name }}',
+            ` ${params.screen_name}`
+        )
+        .replace(
+            '{{ main_channels_names }}',
+            params.main_channels_names
+                .join("\n- ~")
+        );
+};
+
+const postWelcomeMessage = (ctx, mainChannelsNames, userId) => {
+    return new Promise((resolve, reject) => {
+        try {
+            ctx.mm.getUserDirectMessageChannel(userId, channel => {
+                const formattedMessage = formatWelcomeMessage(
+                    ctx.cfg.welcomeMessage,
+                    {
+                        screen_name: userName({ctx, userId}),
+                        main_channels_names: mainChannelsNames
+                    }
+                );
+
+                ctx.mm.postMessage(formattedMessage, channel.id);
+                resolve(
+                    `Welcome message was successfully posted to user having id ${userId}`
+                );
+            });
+        } catch (e) {
+            reject(e);
+        }
+    });
+};
+
+const demoteUserToGuest = (ctx /*:Context_t*/, userId /*:string */, m /*:Message_t*/)/*: Promise<any> */ => {
+    return demoteUserHavingUserId(ctx, userId)
+    .then(() => findTeamByName(ctx))
+    .then(({id: teamId}) => getMainChannelsNames(ctx, teamId))
+    .then(mainChannelsNames => postWelcomeMessage(ctx, mainChannelsNames, userId))
+    .then(success => reply(ctx, success, m));
+};
+
+const dem = (ctx /*:Context_t*/, words /*:Array<string>*/, m /*:Message_t*/) => {
+    const userIdOrUsername = words[0];
+    const user = ctx.mm.getUserByID(userIdOrUsername);
+
+    let isPrefixed = false;
+    if (typeof userIdOrUsername !== 'undefined') {
+        isPrefixed = userIdOrUsername[0] === '@';
+    }
+
+    if (
+        !isPrefixed &&
+        typeof user !== 'undefined' &&
+        isValidateUserIdFormat(user.id)
+    ) {
+        return demoteUserToGuest(ctx, user.id, m);
+    }
+
+    let username = userIdOrUsername;
+    if (isPrefixed) {
+        username = userIdOrUsername.substr(1, userIdOrUsername.length - 1);
+    }
+
+    searchUserByTerm(ctx, `${username}`)
+    .then(({id: userId}) => {
+        if (!isValidateUserIdFormat(userId)) {
+            throw `Could not find user id from term ${username}`;
+        }
+
+        return demoteUserToGuest(ctx, userId, m);
+    });
+};
+
 let COMMANDS;
 let COMMANDS_PVT;
 const help = (ctx /*:Context_t*/, _words /*:Array<string>*/, m /*:Message_t*/) => {
@@ -1302,6 +1477,7 @@ COMMANDS = {
     allusers:  { cmd: allusers, argc: [0,1], help: 'Print all users known to the bot, or all users authorized to a channel'},
     evict:     { cmd: evict,  argc: [0,1], help: 'Remove all users who are not authorized'},
     del:       { cmd: del,    argc:  0, help: 'Delete the current channel'},
+    dem:       { cmd: dem,    argc:  [0, 1], help: 'Demote a user to guest'},
     help:      { cmd: help,   argc:  0, help: 'Display this message' },
 };
 COMMANDS_PVT = {
@@ -1473,10 +1649,21 @@ const connect = (ctx) => {
         }
         console.log('unexpected message structure', m);
     });
+    ctx.mm.on('raw_message', (m) => {
+        if (m.event === 'new_user') {
+            if (!m.data) {
+            } else if (!isValidateUserIdFormat(m.data.user_id)) {
+                console.error('Invalid user id');
+                return;
+            }
+
+            demoteUserToGuest(ctx, m.data.user_id, m);
+        }
+    });
 };
 
 const main = (config) => {
-    process.env.MATTERMOST_LOG_LEVEL = 'notice';
+    process.env.MATTERMOST_LOG_LEVEL = 'debug';
     let db = {
         _chans: {},
     };
@@ -1490,7 +1677,7 @@ const main = (config) => {
         }));
     }).nThen((_) => {
         const ctx = Object.freeze({
-            mm: new Mattermost(config.server, config.team, { wssPort: 443, httpPort: null }),
+            mm: new Mattermost(config.server, config.team, { wssPort: config.wssPort, httpPort: config.httpPort }),
             cfg: config,
             db: db,
             mut: {
