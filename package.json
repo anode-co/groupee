@@ -9,7 +9,7 @@
   "author": "Anode LLC",
   "license": "GPL3",
   "dependencies": {
-    "mattermost-client": "^6.1.2",
+    "mattermost-client": "^6.4.1",
     "nthen": "^0.1.10"
   },
   "devDependencies": {
