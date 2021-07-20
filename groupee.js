@@ -1381,7 +1381,7 @@ const formatWelcomeMessage = (message, params) => {
     return message
         .replace(
             '{{ screen_name }}',
-            ` ${params.screen_name}`
+            `${params.screen_name}`
         )
         .replace(
             '{{ main_channels_names }}',
