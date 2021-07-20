@@ -1386,7 +1386,8 @@ const formatWelcomeMessage = (message, params) => {
         .replace(
             '{{ main_channels_names }}',
             params.main_channels_names
-                .join("\n- ~")
+            .map(name => `- ~${name}`)
+            .join("\n")
         );
 };
 
