@@ -1414,7 +1414,7 @@ const postWelcomeMessage = (ctx, mainChannelsNames, userId) => {
     });
 };
 
-const demoteUserToGuest = (ctx /*:Context_t*/, userId /*:string */, m /*:Message_t*/)/*: Promise<any> */ => {
+const runWelcomeFlow = (ctx /*:Context_t*/, userId /*:string */, m /*:Message_t*/)/*: Promise<any> */ => {
     return demoteUserHavingUserId(ctx, userId)
     .then(() => findTeamByName(ctx))
     .then(({id: teamId}) => getMainChannelsNames(ctx, teamId))
@@ -1422,7 +1422,6 @@ const demoteUserToGuest = (ctx /*:Context_t*/, userId /*:string */, m /*:Message
     .then(success => reply(ctx, success, m));
 };
 
-const dem = (ctx /*:Context_t*/, words /*:Array<string>*/, m /*:Message_t*/) => {
     const userIdOrUsername = words[0];
     const user = ctx.mm.getUserByID(userIdOrUsername);
 
@@ -1436,7 +1435,7 @@ const dem = (ctx /*:Context_t*/, words /*:Array<string>*/, m /*:Message_t*/) => 
         typeof user !== 'undefined' &&
         isValidateUserIdFormat(user.id)
     ) {
-        return demoteUserToGuest(ctx, user.id, m);
+        return runWelcomeFlow(ctx, user.id, m);
     }
 
     let username = userIdOrUsername;
@@ -1450,7 +1449,7 @@ const dem = (ctx /*:Context_t*/, words /*:Array<string>*/, m /*:Message_t*/) => 
             throw `Could not find user id from term ${username}`;
         }
 
-        return demoteUserToGuest(ctx, userId, m);
+        return runWelcomeFlow(ctx, userId, m);
     });
 };
 
@@ -1658,7 +1657,7 @@ const connect = (ctx) => {
                 return;
             }
 
-            demoteUserToGuest(ctx, m.data.user_id, m);
+            runWelcomeFlow(ctx, m.data.user_id, m);
         }
     });
 };
