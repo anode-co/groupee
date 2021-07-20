@@ -1362,7 +1362,7 @@ const demoteUserHavingUserId = (ctx /*:Context_t*/, userId /*:string */, then) /
             apiCall(
                 ctx,
                 'POST',
-                `/channels/${userId}/demote`,
+                `/users/${userId}/demote`,
                  null,
                 (data, headers) => {
                     resolve(data);
