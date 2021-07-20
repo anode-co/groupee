@@ -1422,6 +1422,7 @@ const runWelcomeFlow = (ctx /*:Context_t*/, userId /*:string */, m /*:Message_t*
     .then(success => reply(ctx, success, m));
 };
 
+const wel = (ctx /*:Context_t*/, words /*:Array<string>*/, m /*:Message_t*/) => {
     const userIdOrUsername = words[0];
     const user = ctx.mm.getUserByID(userIdOrUsername);
 
@@ -1477,7 +1478,7 @@ COMMANDS = {
     allusers:  { cmd: allusers, argc: [0,1], help: 'Print all users known to the bot, or all users authorized to a channel'},
     evict:     { cmd: evict,  argc: [0,1], help: 'Remove all users who are not authorized'},
     del:       { cmd: del,    argc:  0, help: 'Delete the current channel'},
-    dem:       { cmd: dem,    argc:  [0, 1], help: 'Demote a user to guest'},
+    wel:       { cmd: wel,    argc:  [0, 1], help: 'Run welcome flow for a user'},
     help:      { cmd: help,   argc:  0, help: 'Display this message' },
 };
 COMMANDS_PVT = {
