@@ -3,7 +3,7 @@
 const Fs = require('fs');
 const Crypto = require('crypto');
 
-const Mattermost = require('./mattermost-client/src/client');
+const Mattermost = require('mattermost-client');
 const nThen = require('nthen');
 
 const Graph = require('./lib/graph.js');
