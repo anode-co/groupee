@@ -1,5 +1,5 @@
-/eventlog-*
-/config.js
-/mattermost-client
-/node_modules
-/db.json
+eventlog-*
+config.js
+mattermost-client
+node_modules
+db.json
