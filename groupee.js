@@ -224,12 +224,36 @@ const demoteUserHavingUserId = (ctx /*:Context_t*/, userId /*:string */, then) /
     );
 };
 
+const postCommand = (ctx, channelId, cmd, parameters = {}, then = null) => {
+    return makeApiCallPromise(
+        ctx,
+        '/commands/execute',
+        'POST',
+        ({trigger_id: triggerId}, resolve, headers, reject) => {
+            if (typeof then === 'function') {
+                then(triggerId, resolve, headers, reject);
+            } else {
+                resolve(triggerId);
+            }
+        },
+        Object.assign(
+            {},
+            parameters,
+            {
+                command: cmd,
+                channel_id: channelId,
+            }
+        )
+    );
+};
+
 const postMessage = (
     ctx /*:Context_t*/,
     message /* string */,
     channelId /* string*/,
     then /*: void|(data: any, resolve: () => void, headers: any, reject: () => void) => void */,
-    props = null /* props */
+    props = null /* props */,
+    token = null /* string */
 ) /*: Promise<any> */ => {
     return makeApiCallPromise(
         ctx,
@@ -251,6 +275,7 @@ const postMessage = (
             create_at: 0,
             user_id: ctx.mut.botId,
             channel_id: channelId,
+            token
         }
     );
 };
@@ -288,7 +313,8 @@ const postWelcomeMessage = (ctx, mainChannelsNames, userId) => {
                         }
                     );
 
-                    const protocol = process.env.MATTERMOST_USE_TLS ? 'https://' : 'http://';
+                    const useTLS = !(process.env.MATTERMOST_USE_TLS || '').match(/^false|0|no|off$/i);
+                    const protocol = useTLS ? 'https://' : 'http://';
                     const port = !ctx.cfg.httpPort ? '' : `:${ctx.cfg.httpPort}`;
                     const url = `${protocol}${ctx.cfg.server}${port}/${ctx.cfg.team}`;
                     const redirectionUrlAfterRulesRejection = ctx.cfg.templatingParams.rulesRejectionRedirectionURL;
@@ -313,12 +339,12 @@ const postWelcomeMessage = (ctx, mainChannelsNames, userId) => {
                                                 }
                                             }
                                         }, {
-                                            "id": "disable-account",
+                                            "id": "reject_rules",
                                             "name": "Disable account",
                                             "integration": {
                                                 "url": `${url}?${redirectionUrlAfterRulesRejection}`,
                                                 "context": {
-                                                    "action": "disabled-account"
+                                                    "action": "reject_rules"
                                                 }
                                             }
                                         }
@@ -329,7 +355,8 @@ const postWelcomeMessage = (ctx, mainChannelsNames, userId) => {
                     )
                     .then(() => {
                         resolve(`Welcome message was successfully posted to user having id ${userId} in channel with id ${channel.id}`);
-                    }, chainError);
+                    }, chainError)
+                    .catch(e => ctx.error({e}));
                 }
             );
         } catch (e) {
