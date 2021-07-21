@@ -155,11 +155,14 @@ const getMainChannelsNames = (ctx /*:Context_t*/, teamId) /*: Promise<any>*/ => 
                 throw 'No main channel name has been defined. See config.js.';
             }
 
-            resolve(mainChannels
-                .filter(channel => ctx.cfg.templatingParams.mainChannelsNames
-                    .find(n => n === channel.display_name || n === channel.name)
-                )
-                .map(channel => channel.name));
+            resolve({
+                mainChannelsNames: mainChannels
+                    .filter(channel => ctx.cfg.templatingParams.mainChannelsNames
+                        .find(n => n === channel.display_name || n === channel.name)
+                    )
+                    .map(channel => channel.name),
+                teamId
+            });
         }
     );
 };
@@ -301,7 +304,7 @@ const formatWelcomeMessage = (message, params) => {
         );
 };
 
-const postWelcomeMessage = (ctx, mainChannelsNames, userId) => {
+const postWelcomeMessage = (ctx, {mainChannelsNames, teamId, userId}) => {
     return new Promise((resolve, reject) => {
         try {
             ctx.mm.getUserDirectMessageChannel(
@@ -316,10 +319,8 @@ const postWelcomeMessage = (ctx, mainChannelsNames, userId) => {
                         }
                     );
 
-                    const useTLS = !(process.env.MATTERMOST_USE_TLS || '').match(/^false|0|no|off$/i);
-                    const protocol = useTLS ? 'https://' : 'http://';
-                    const port = !ctx.cfg.httpPort ? '' : `:${ctx.cfg.httpPort}`;
-                    const url = `${protocol}${ctx.cfg.server}${port}/${ctx.cfg.team}`;
+                    const protocol = 'http://';
+                    const url = `${protocol}localhost:${ctx.cfg.serverPort}`;
                     const redirectionUrlAfterRulesRejection = ctx.cfg.templatingParams.rulesRejectionRedirectionURL;
 
                     postMessage(
@@ -333,21 +334,29 @@ const postWelcomeMessage = (ctx, mainChannelsNames, userId) => {
                                     "text": ctx.cfg.templatingParams.questionAboutAcceptingRules,
                                     "actions": [
                                         {
-                                            "id": "give-tour",
+                                            "id": "accept",
+                                            "user_id": userId,
+                                            "channel_id": channel.id,
+                                            "team_id": teamId,
                                             "name": "Accept rules",
                                             "integration": {
                                                 url,
                                                 "context": {
-                                                    "action": "give-tour"
+                                                    "action_id": "accept",
+                                                    "action": "accept",
                                                 }
                                             }
                                         }, {
-                                            "id": "reject_rules",
+                                            "id": "reject",
                                             "name": "Disable account",
+                                            "user_id": userId,
+                                            "channel_id": channel.id,
+                                            "team_id": teamId,
                                             "integration": {
                                                 "url": `${url}?${redirectionUrlAfterRulesRejection}`,
                                                 "context": {
-                                                    "action": "reject_rules"
+                                                    "action": "reject",
+                                                    "action_id": "reject",
                                                 }
                                             }
                                         }
@@ -372,7 +381,11 @@ const runWelcomeFlow = (ctx /*:Context_t*/, userId /*:string */, m /*:Message_t*
     return demoteUserHavingUserId(ctx, userId)
     .then(() => findTeamByName(ctx), chainError)
     .then(({id: teamId}) => getMainChannelsNames(ctx, teamId), chainError)
-    .then(mainChannelsNames => postWelcomeMessage(ctx, mainChannelsNames, userId), chainError)
+    .then(
+        ({mainChannelsNames: mainChannelsNames, teamId: teamId}) =>
+            postWelcomeMessage(ctx, {mainChannelsNames, teamId, userId}),
+        chainError
+    )
     .then(success => reply(ctx, success, m), chainError)
     .catch(e => {
         ctx.error(e);
@@ -611,8 +624,12 @@ const main = (config) => {
         }
     });
 
-    server.listen(config.serverPort, () => {
+    server.listen(config.serverPort, (error) => {
+        if (error) {
+            return error(error);
+        }
 
+        info(`Server listening on port ${config.serverPort}`);
     });
 
     const ctx = Object.freeze({
