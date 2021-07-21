@@ -153,6 +153,9 @@ const getMainChannelsNames = (ctx /*:Context_t*/, teamId) /*: Promise<any>*/ => 
             }
 
             resolve(mainChannels
+                .filter(channel => ctx.cfg.templatingParams.mainChannelsNames
+                    .find(n => n === channel.display_name || n === channel.name)
+                )
                 .map(channel => channel.name));
         }
     );
@@ -225,7 +228,8 @@ const postMessage = (
     ctx /*:Context_t*/,
     message /* string */,
     channelId /* string*/,
-    then /*: void|(data: any, resolve: () => void, headers: any, reject: () => void) => void */
+    then /*: void|(data: any, resolve: () => void, headers: any, reject: () => void) => void */,
+    props = null /* props */
 ) /*: Promise<any> */ => {
     return makeApiCallPromise(
         ctx,
@@ -242,10 +246,11 @@ const postMessage = (
         },
         {
             message,
+            props,
             file_ids: [],
             create_at: 0,
             user_id: ctx.mut.botId,
-            channel_id: channelId
+            channel_id: channelId,
         }
     );
 };
@@ -268,10 +273,6 @@ const formatWelcomeMessage = (message, params) => {
         );
 };
 
-const offerDialogToAcceptRulesOrRejectThem = (ctx, channelId) => {
-    return postMessage(ctx, '/me Do you accept the rules or not?', channelId);
-};
-
 const postWelcomeMessage = (ctx, mainChannelsNames, userId) => {
     return new Promise((resolve, reject) => {
         try {
@@ -279,19 +280,56 @@ const postWelcomeMessage = (ctx, mainChannelsNames, userId) => {
                 userId,
                 channel => {
                     const formattedMessage = formatWelcomeMessage(
-                        ctx.cfg.welcomeMessage,
+                        ctx.cfg.templatingParams.welcomeMessage,
                         {
                             screen_name: getUsernameByUserId({ctx, userId}),
                             main_channels_names: mainChannelsNames,
-                            report_abuse_email: ctx.cfg.report_abuse_email
+                            report_abuse_email: ctx.cfg.templatingParams.reportAbuseEmail
                         }
                     );
 
-                    postMessage(ctx, formattedMessage, channel.id)
+                    const protocol = process.env.MATTERMOST_USE_TLS ? 'https://' : 'http://';
+                    const port = !ctx.cfg.httpPort ? '' : `:${ctx.cfg.httpPort}`;
+                    const url = `${protocol}${ctx.cfg.server}${port}/${ctx.cfg.team}`;
+                    const redirectionUrlAfterRulesRejection = ctx.cfg.templatingParams.rulesRejectionRedirectionURL;
+
+                    postMessage(
+                        ctx,
+                        formattedMessage,
+                        channel.id,
+                        null,
+                        {
+                            "attachments": [
+                                {
+                                    "text": ctx.cfg.templatingParams.questionAboutAcceptingRules,
+                                    "actions": [
+                                        {
+                                            "id": "give-tour",
+                                            "name": "Accept rules",
+                                            "integration": {
+                                                url,
+                                                "context": {
+                                                    "action": "give-tour"
+                                                }
+                                            }
+                                        }, {
+                                            "id": "disable-account",
+                                            "name": "Disable account",
+                                            "integration": {
+                                                "url": `${url}?${redirectionUrlAfterRulesRejection}`,
+                                                "context": {
+                                                    "action": "disabled-account"
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    )
                     .then(() => {
                         resolve(`Welcome message was successfully posted to user having id ${userId} in channel with id ${channel.id}`);
-                    }, chainError)
-                    .then(() => offerDialogToAcceptRulesOrRejectThem(ctx), chainError);
+                    }, chainError);
                 }
             );
         } catch (e) {
@@ -301,13 +339,7 @@ const postWelcomeMessage = (ctx, mainChannelsNames, userId) => {
 };
 
 const runWelcomeFlow = (ctx /*:Context_t*/, userId /*:string */, m /*:Message_t*/)/*: Promise<any>|void */ => {
-    return findSystemAdministrators(ctx)
-    .then((systemAdministrators) => {
-        ctx.mut.systemAdministrators = systemAdministrators;
-        ctx.debug('System administrators are', systemAdministrators);
-
-        return demoteUserHavingUserId(ctx, userId);
-    }, chainError)
+    return demoteUserHavingUserId(ctx, userId)
     .then(() => findTeamByName(ctx), chainError)
     .then(({id: teamId}) => getMainChannelsNames(ctx, teamId), chainError)
     .then(mainChannelsNames => postWelcomeMessage(ctx, mainChannelsNames, userId), chainError)
@@ -375,7 +407,9 @@ const message = (ctx, m /*:Message_t*/) => {
     findSystemAdministrators(ctx)
     .then((systemAdministrators) => {
         ctx.mut.systemAdministrators = systemAdministrators;
-        ctx.debug('System administrators are', systemAdministrators);
+
+        ctx.debug(`System administrators are ${systemAdministrators.map(a => a.username).join(',')}`);
+
         if (!m._channel || typeof m._channel.name !== 'string') {
             return;
         }
