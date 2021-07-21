@@ -1,5 +1,7 @@
 /*@flow*/
 
+const http = require('http');
+
 const Mattermost = require('mattermost-client');
 
 /*::
@@ -60,6 +62,7 @@ type Message_t = {
   },
 };
 type Context_t = {
+    server: any,
     mm: any,
     cfg: any,
     mut: {
@@ -597,7 +600,23 @@ const main = (config) => {
         info({stack: (new Error()).stack});
     };
 
+    const server = http.createServer((request, response) => {
+        const { method, url, headers } = request;
+
+        info({method, url});
+
+        if (method === "GET" && url === "/") {
+            response.write(JSON.stringify({}));
+            response.end();
+        }
+    });
+
+    server.listen(config.serverPort, () => {
+
+    });
+
     const ctx = Object.freeze({
+        server,
         mm: client,
         cfg: config,
         mut: {

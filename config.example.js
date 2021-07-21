@@ -38,6 +38,7 @@ module.exports = {
     team: 'yourteam',
     wssPort: 443,
     httpPort: 80,
+    serverPort: 3000,
     templatingParams: {
         welcomeMessage,
         mainChannelsNames,
