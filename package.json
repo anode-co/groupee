@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "start:dev-server": "MATTERMOST_LOG_LEVEL=debug MATTERMOST_USE_TLS=false node index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Anode LLC",
