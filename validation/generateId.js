@@ -1,3 +1,4 @@
+
 const alphaNumber = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
 const generateId = (length = 26, chars= alphaNumber) => {
     let result = '';

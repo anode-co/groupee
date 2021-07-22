@@ -13,11 +13,10 @@ Abuses can be reported by email at {{ report_abuse_email }}
 `;
 
 const tour = `
- * type /channels for a full list of channels you can join
- * You are currently a guest - you can only join some channels
-
-The main channels on this server are
+ - The main channels on this server are
 {{ main_channels_names }}
+
+ - You are currently a guest - you can only join some channels
 `;
 
 const reportAbuseEmail = 'report-abuse@example.com';
@@ -28,6 +27,8 @@ const mainChannelsNames = [
 ];
 
 const questionAboutAcceptingRules = 'Do you accept the rules above?';
+
+const labelAcceptRules = 'Yes, I do accept the rules.';
 
 export default {
     me: 'groupee', // name of the bot
@@ -40,11 +41,12 @@ export default {
     httpPort: 80,
     serverPort: 3000,
     templatingParams: {
-        welcomeMessage,
+        labelAcceptRules,
         mainChannelsNames,
         reportAbuseEmail,
-        questionAboutAcceptingRules,
         rulesRejectionRedirectionURL: 'https://rules-rejected.example.com',
-        tour
+        questionAboutAcceptingRules,
+        tour,
+        welcomeMessage,
     }
 };

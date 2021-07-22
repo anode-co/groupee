@@ -2,10 +2,9 @@
 import http from 'http';
 import { URL } from 'url';
 
-import routes from "./routes.js";
-import actions from "../workflow/actions.js";
-
-import disableUserAccount from "../api/disableUserAccount.js";
+import {chainError, getMainChannelsNames} from "../api/index.js";
+import {postTourMessage} from "../workflow/index.js";
+import Routes from "./routes/index.js";
 
 const METHOD_POST = 'POST';
 
@@ -13,6 +12,10 @@ const notFound = (response) => {
     response.statusCode = 404;
     response.statusMessage = 'Not found';
     response.end();
+};
+
+const matchingRoute = ({method, pathname}, {expectedMethod, expectedRoute}) => {
+    return method === expectedMethod && expectedRoute === pathname;
 };
 
 const startServer = (ctx /*: Context_t */, config) => {
@@ -28,34 +31,31 @@ const startServer = (ctx /*: Context_t */, config) => {
         ctx.info({pathname});
 
         if (
-            method === METHOD_POST &&
-            [
-                routes.ROUTE_ACCEPT_RULES,
-                routes.ROUTE_REJECT_RULES
-            ].indexOf(pathname) !== -1
+            matchingRoute(
+                {method, pathname},
+                {
+                    expectedMethod: METHOD_POST,
+                    expectedRoute: Routes.routes.ROUTE_ACCEPT_RULES
+                })
         ) {
-            switch (pathname) {
-                case routes.ROUTE_REJECT_RULES:
+            Routes.handlers.acceptRules(
+                response,
+                () => {
+                    const teamId = requestUrl.searchParams.get('team_id');
+                    if (!teamId) {
+                        throw 'Team id is required to get main channel names';
+                    }
 
                     const userId = requestUrl.searchParams.get('user_id');
                     if (!userId) {
-                        throw 'Can not disable user account without user id';
+                        throw 'User id is required to post a tour message.';
                     }
 
-                    disableUserAccount(ctx, userId)
-                    .catch(e => ctx.error('Could not disable user account: ', e));
-
-                    break;
-            }
-
-            response.write(JSON.stringify({
-                [actions.ACTION_ID_ACCEPT_RULES]: {
-                    "message": "Thank you for having accepted the rules",
-                    "props": {}
-                },
-                [actions.ACTION_ID_REJECT_RULES]: "Your account will be disabled. We're sorry to see you leave us.",
-            }));
-            response.end();
+                    getMainChannelsNames(ctx, teamId)
+                    .then(({mainChannelsNames}) => postTourMessage({ctx, mainChannelsNames, userId}), chainError)
+                    .catch(e => ctx.error(`Could not post tour message for user having id ${userId}`, e));
+                }
+            );
             return;
         }
 
@@ -75,5 +75,5 @@ const startServer = (ctx /*: Context_t */, config) => {
 
 export default {
     startServer,
-    routes
+    routes: Routes.routes
 };

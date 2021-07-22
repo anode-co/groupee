@@ -6,7 +6,14 @@ const findTeamByName = (ctx /*:Context_t*/) /*: Promise<any>*/ => {
         ctx,
         `/teams/name/${ctx.cfg.team}`,
         'GET',
-        (team, resolve, _, __) => resolve(team)
+        (team, resolve, _, reject) => {
+            if (!team) {
+                reject(`Invalid result for team having name ${ctx.cfg.team}`);
+                return;
+            }
+
+            resolve(team);
+        }
     );
 };
 

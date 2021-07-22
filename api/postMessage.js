@@ -12,7 +12,6 @@ const postMessage = (
         '/posts',
         'POST',
         (postedMessage, resolve, headers, _) => {
-            ctx.info({attachments: postedMessage.props.attachments[0].actions});
             resolve(postedMessage);
         },
         {

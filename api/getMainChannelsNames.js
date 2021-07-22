@@ -7,6 +7,10 @@ const getMainChannelsNames = (ctx /*:Context_t*/, teamId) /*: Promise<any>*/ => 
         `/teams/${teamId}/channels`,
         'GET',
         (mainChannels, resolve, _, __) => {
+            if (!Array.isArray(mainChannels)) {
+                throw 'Invalid main channels.';
+            }
+
             if (mainChannels.length === 0) {
                 throw 'No main channel name has been defined. See config.js.';
             }
