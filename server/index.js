@@ -21,13 +21,6 @@ const startServer = (ctx /*: Context_t */, config) => {
             method,
             request,
             response
-        }) ||
-        Routes.Handlers.handleAcknowledgeRecommendation({
-            ctx,
-            config,
-            method,
-            request,
-            response
         });
 
         if (!routeMatches) {

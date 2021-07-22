@@ -1,7 +1,6 @@
 import urlUtils from "../../urlUtils.js";
 
 import { handleAcceptRules } from "./acceptRules.js";
-import { handleAcknowledgeRecommendation } from "./acknowledgeRecommendation.js";
 
 const sendResponse = (response, updatePost = {}) => {
     response.writeHead(200, {"Content-Type": "application/json"});
@@ -54,6 +53,5 @@ export {
 };
 
 export default {
-    handleAcceptRules,
-    handleAcknowledgeRecommendation,
+    handleAcceptRules
 };

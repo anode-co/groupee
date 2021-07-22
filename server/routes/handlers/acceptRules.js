@@ -22,8 +22,7 @@ const handleAcceptRules = ({ctx, method, request, response, config}) => {
         });
 
     if (routeMatches) {
-        const {url, queryString, teamId} = guardAgainstMissingParams(ctx, requestUrl);
-        const requirement = config.templatingParams.requirements[0];
+        const {teamId} = guardAgainstMissingParams(ctx, requestUrl);
 
         getMainChannelsNames(ctx, teamId)
             .then(({mainChannelsNames}) => {
@@ -31,14 +30,6 @@ const handleAcceptRules = ({ctx, method, request, response, config}) => {
                     config.templatingParams.tour,
                     {main_channels_names: mainChannelsNames}
                 );
-
-                const propsUrl = [
-                    url,
-                    Routes.routes.ROUTE_ACKNOWLEDGE_RECOMMENDATIONS,
-                    `?${queryString}`,
-                    `&actionId=${requirement.actionId}`,
-                    `&nextActionId=${requirement.nextActionId}`
-                ].join('');
 
                 sendResponse(
                     response,
@@ -48,12 +39,7 @@ const handleAcceptRules = ({ctx, method, request, response, config}) => {
                                 config.templatingParams.updatedAcceptedRulesMessage,
                                 formattedMessage
                             ].join("\n\n"),
-                            props: Templating.messageAttachmentsProps({
-                                actionId: requirement.actionId,
-                                text: requirement.text,
-                                buttonLabel: requirement.buttonLabel,
-                                url: propsUrl
-                            })
+                            props: {}
                         },
                     }
                 );

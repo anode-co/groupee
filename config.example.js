@@ -16,7 +16,7 @@ const tour = `
  - The main channels on this server are
 {{ main_channels_names }}
 
- - You are currently a guest - you can only join some channels
+ - You are currently a guest
 `;
 
 const reportAbuseEmail = 'report-abuse@example.com';
@@ -50,22 +50,6 @@ export default {
         questionAboutAcceptingRules,
         tour,
         updatedAcceptedRulesMessage,
-        welcomeMessage,
-        requirements: [
-            {
-                actionId: '_1',
-                text: 'Please do this',
-                buttonLabel: "Done",
-                update: 'It\'s done',
-                nextActionId: '_2'
-            },
-            {
-                actionId: '_2',
-                text: 'Please do that',
-                buttonLabel: "Done",
-                update: 'It\'s done',
-                nextActionId: null
-            },
-        ]
+        welcomeMessage
     }
 };
