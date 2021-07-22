@@ -51,5 +51,21 @@ export default {
         tour,
         updatedAcceptedRulesMessage,
         welcomeMessage,
+        requirements: [
+            {
+                actionId: '_1',
+                text: 'Please do this',
+                buttonLabel: "Done",
+                update: 'It\'s done',
+                nextActionId: '_2'
+            },
+            {
+                actionId: '_2',
+                text: 'Please do that',
+                buttonLabel: "Done",
+                update: 'It\'s done',
+                nextActionId: null
+            },
+        ]
     }
 };

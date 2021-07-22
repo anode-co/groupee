@@ -6,6 +6,7 @@ import {
     postMessage
 } from "../api/index.js";
 import { reply } from "../commands/index.js";
+import Server from '../server/index.js';
 
 import Templating from '../templating/index.js';
 
@@ -16,32 +17,6 @@ const getUsernameByUserId = ({ctx, userId}) => {
     ctx = (ctx /*:Context_t*/);
     const u = ctx.mm.users[userId];
     return u ? u.username : `user:${userId}`;
-};
-
-const postTourMessage = ({ctx, mainChannelsNames, userId}) => {
-    const formattedMessage = Templating.formatTourMessage(
-        ctx.cfg.templatingParams.tour,
-        {main_channels_names: mainChannelsNames}
-    );
-
-    return new Promise((resolve, reject) => {
-        try {
-            ctx.mm.getUserDirectMessageChannel(
-                userId,
-                channel => postMessage(
-                    ctx,
-                    formattedMessage,
-                    channel.id
-                )
-                .then(() => {
-                    resolve(`Tour message was successfully posted to user having id ${userId} in channel with id ${channel.id}`);
-                }, chainError)
-                .catch(e => ctx.error({e}))
-            );
-        } catch (e) {
-            reject(e);
-        }
-    });
 };
 
 const postWelcomeMessage = (ctx, {teamId, userId}) => {
@@ -60,17 +35,10 @@ const postWelcomeMessage = (ctx, {teamId, userId}) => {
                         }
                     );
 
-                    const protocol = 'http://';
-                    const url = `${protocol}localhost:${ctx.cfg.serverPort}`;
-                    const params = {
-                        team_id: teamId,
-                        channel_id: channel.id,
-                        user_id: userId,
-                        username,
-                    };
-                    const queryString = Object.keys(params)
-                    .map(p => `${p}=${params[p]}`)
-                    .join('&');
+                    const url = Server.urlUtils.url(ctx);
+                    const queryString = Server.urlUtils.queryString(
+                        Server.urlUtils.params(teamId, channel, userId, username)
+                    );
 
                     const props = {
                         "attachments": [
@@ -119,16 +87,14 @@ const postWelcomeMessage = (ctx, {teamId, userId}) => {
 };
 
 const runWelcomeFlow = (ctx /*:Context_t*/, userId /*:string */, m /*:Message_t*/)/*: Promise<any>|void */ => {
-    return demoteUserHavingUserId(ctx, userId)
-        .then(() => findTeamByName(ctx), chainError)
+    return findTeamByName(ctx)
         .then(({id: teamId}) => postWelcomeMessage(ctx, {teamId, userId}), chainError)
         .then(success => reply(ctx, success, m), chainError)
+        .then(() => demoteUserHavingUserId(ctx, userId), chainError)
         .catch(e => {
             ctx.error(e);
             reply(ctx, `Could not run welcome flow with error: \n${e}`, m);
         });
 };
-
-export { postTourMessage };
 
 export default runWelcomeFlow;

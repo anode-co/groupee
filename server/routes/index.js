@@ -1,11 +1,13 @@
 
-import handlers from './handlers/index.js';
+import Handlers from './handlers/index.js';
 
 const ROUTE_ACCEPT_RULES = '/accept-rules';
+const ROUTE_ACKNOWLEDGE_RECOMMENDATIONS = '/acknowledge-recommendations';
 
 export default {
-    handlers,
+    Handlers,
     routes: {
         ROUTE_ACCEPT_RULES: ROUTE_ACCEPT_RULES,
+        ROUTE_ACKNOWLEDGE_RECOMMENDATIONS: ROUTE_ACKNOWLEDGE_RECOMMENDATIONS,
     }
 };

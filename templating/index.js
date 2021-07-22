@@ -21,7 +21,30 @@ const formatTourMessage = (message, params) => {
         );
 };
 
+const messageAttachmentsProps = ({text, url, actionId, buttonLabel}) => {
+    return {
+        attachments: [
+            {
+                text,
+                actions: [
+                    {
+                        "id": actionId,
+                        "name": buttonLabel,
+                        integration: {
+                            url,
+                            "context": {
+                                "action": actionId,
+                            }
+                        }
+                    }
+                ]
+            }
+        ]
+    };
+};
+
 export default {
     formatTourMessage,
-    formatWelcomeMessage
+    formatWelcomeMessage,
+    messageAttachmentsProps
 };
