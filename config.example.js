@@ -29,7 +29,7 @@ const mainChannelsNames = [
 
 const questionAboutAcceptingRules = 'Do you accept the rules above?';
 
-module.exports = {
+export default {
     me: 'groupee', // name of the bot
     email: 'email_address_of_the_bot_user',
     passwd: 'bot_password',

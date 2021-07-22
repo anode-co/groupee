@@ -2,7 +2,7 @@
   "name": "groupee",
   "version": "1.0.0",
   "description": "",
-  "main": "groupee.js",
+  "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -11,6 +11,8 @@
   "dependencies": {
     "mattermost-client": "^6.4.1"
   },
+  "type": "module",
+  "export": "./index.js",
   "devDependencies": {
     "flow-bin": "^0.126.1",
     "jshint": "^2.11.1"
