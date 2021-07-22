@@ -38,22 +38,28 @@ const startServer = (ctx /*: Context_t */, config) => {
                     expectedRoute: Routes.routes.ROUTE_ACCEPT_RULES
                 })
         ) {
+            const teamId = requestUrl.searchParams.get('team_id');
+            if (!teamId) {
+                throw 'Team id is required to get main channel names';
+            }
+
+            const userId = requestUrl.searchParams.get('user_id');
+            if (!userId) {
+                throw 'User id is required to post a tour message.';
+            }
+
             Routes.handlers.acceptRules(
                 response,
                 () => {
-                    const teamId = requestUrl.searchParams.get('team_id');
-                    if (!teamId) {
-                        throw 'Team id is required to get main channel names';
-                    }
-
-                    const userId = requestUrl.searchParams.get('user_id');
-                    if (!userId) {
-                        throw 'User id is required to post a tour message.';
-                    }
-
                     getMainChannelsNames(ctx, teamId)
                     .then(({mainChannelsNames}) => postTourMessage({ctx, mainChannelsNames, userId}), chainError)
                     .catch(e => ctx.error(`Could not post tour message for user having id ${userId}`, e));
+                },
+                {
+                    update: {
+                        message: ctx.cfg.templatingParams.updatedAcceptedRulesMessage,
+                        props: {}
+                    },
                 }
             );
             return;

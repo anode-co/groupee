@@ -30,6 +30,8 @@ const questionAboutAcceptingRules = 'Do you accept the rules above?';
 
 const labelAcceptRules = 'Yes, I do accept the rules.';
 
+const updatedAcceptedRulesMessage = 'Thank you for having accepting the rules';
+
 export default {
     me: 'groupee', // name of the bot
     email: 'email_address_of_the_bot_user',
@@ -47,6 +49,7 @@ export default {
         rulesRejectionRedirectionURL: 'https://rules-rejected.example.com',
         questionAboutAcceptingRules,
         tour,
+        updatedAcceptedRulesMessage,
         welcomeMessage,
     }
 };

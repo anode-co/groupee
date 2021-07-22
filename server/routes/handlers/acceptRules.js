@@ -1,9 +1,9 @@
 
-const acceptRules = (response, cb) => {
+const acceptRules = (response, cb, updatePost = {}) => {
     cb();
 
-    response.write(JSON.stringify({}));
-    response.end();
+    response.writeHead(200, {"Content-Type": "application/json"});
+    response.end(JSON.stringify(updatePost));
 };
 
 export default acceptRules;
