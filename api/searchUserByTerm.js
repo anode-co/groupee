@@ -8,7 +8,7 @@ const searchUserByTerm = (ctx, term, page = 0) => {
         'POST',
         (users, resolve, _, reject) => {
             if (!Array.isArray(users) || users.length < 1) {
-                reject(`Ambiguous command. Can not find single user by term: "${term}"`);
+                reject(`Ambiguous command. Could not find single user by term: "${term}"`);
                 return;
             }
 

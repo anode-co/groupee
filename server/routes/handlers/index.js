@@ -1,6 +1,7 @@
 import urlUtils from "../../urlUtils.js";
 
-import { handleAcceptRules } from "./acceptRules.js";
+import handleAcceptRules from "./acceptRules.js";
+import handlePromoteGuest from "./promoteGuest.js";
 
 const sendResponse = (response, updatePost = {}) => {
     response.writeHead(200, {"Content-Type": "application/json"});
@@ -53,5 +54,6 @@ export {
 };
 
 export default {
-    handleAcceptRules
+    handleAcceptRules,
+    handlePromoteGuest
 };

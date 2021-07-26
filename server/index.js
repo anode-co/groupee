@@ -11,11 +11,18 @@ const notFound = (response) => {
 };
 
 const startServer = (ctx /*: Context_t */, config) => {
-    const server = http.createServer((request, response) => {
-        const { method } = request;
+    const server = http.createServer(async (request, response) => {
+        const {method} = request;
         let routeMatches;
 
         routeMatches = Routes.Handlers.handleAcceptRules({
+            ctx,
+            config,
+            method,
+            request,
+            response
+        }) ||
+        await Routes.Handlers.handlePromoteGuest({
             ctx,
             config,
             method,

@@ -51,4 +51,4 @@ const handleAcceptRules = ({ctx, method, request, response, config}) => {
     return routeMatches;
 };
 
-export { handleAcceptRules };
+export default handleAcceptRules;

@@ -62,8 +62,11 @@ type Context_t = {
     mm: any,
     cfg: any,
     mut: {
+        botAccount: any,
         botId: string,
-        systemAdministrators: Array<any>
+        server: any,
+        systemAdministrators: Array<any>,
+        teamMembers: Array<any>,
     },
     debug: (...arg: any[]) => void,
     info: (...arg: any[]) => void,

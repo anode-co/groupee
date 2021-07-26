@@ -7,7 +7,7 @@ import Server from './server/index.js';
 
 import config from './config.js';
 
-const main = (config) => {
+const main = async (config) => {
     process.env.MATTERMOST_LOG_LEVEL = process.env.MATTERMOST_LOG_LEVEL || 'notice';
 
     const client = new Mattermost(
@@ -34,7 +34,7 @@ const main = (config) => {
     };
     
     const backtrace = () => {
-        info({stack: (new Error()).stack});
+        error({stack: (new Error()).stack});
     };
 
     const ctx = Object.freeze({
@@ -42,7 +42,7 @@ const main = (config) => {
         cfg: config,
         mut: {
             botId: '_',
-            systemAdministrators: [],
+            botAccount: {},
             server: {},
         },
         debug,
