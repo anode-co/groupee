@@ -1,6 +1,6 @@
 # Description
 
-Add welcome flow for newcomers.
+Add welcome flow for newcomers.  
 Add `/promote-guest` endpoint to handle custom slash command
 
 ## Development
