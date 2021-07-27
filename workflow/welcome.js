@@ -86,15 +86,16 @@ const postWelcomeMessage = (ctx, {teamId, userId}) => {
     });
 };
 
-const runWelcomeFlow = (ctx /*:Context_t*/, userId /*:string */, m /*:Message_t*/)/*: Promise<any>|void */ => {
-    return findTeamByName(ctx)
-        .then(({id: teamId}) => postWelcomeMessage(ctx, {teamId, userId}), chainError)
-        .then(success => reply(ctx, success, m), chainError)
-        .then(() => demoteUserHavingUserId(ctx, userId), chainError)
-        .catch(e => {
-            ctx.error(e);
-            reply(ctx, `Could not run welcome flow with error: \n${e}`, m);
-        });
+const runWelcomeFlow = async (ctx /*:Context_t*/, userId /*:string */, m /*:Message_t*/)/*: Promise<any>|void */ => {
+    try {
+        let {id: teamId} = await findTeamByName(ctx);
+        let success = await postWelcomeMessage(ctx, {teamId, userId});
+        await reply(ctx, success, m);
+        await demoteUserHavingUserId(ctx, userId);
+    } catch(e) {
+        ctx.error(e);
+        reply(ctx, `Could not run welcome flow with error: \n${e}`, m);
+    }
 };
 
 export default runWelcomeFlow;

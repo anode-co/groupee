@@ -160,7 +160,7 @@ const connect = (ctx) => {
         ctx.info('unexpected message structure', m);
     });
 
-    ctx.mm.on('raw_message', (m) => {
+    ctx.mm.on('raw_message', async (m) => {
         if (m.event === 'new_user') {
             if (!m.data) {
             } else if (!isValidUserIdFormat(m.data.user_id)) {
@@ -168,7 +168,7 @@ const connect = (ctx) => {
                 return;
             }
 
-            runWelcomeFlow(ctx, m.data.user_id, m);
+            await runWelcomeFlow(ctx, m.data.user_id, m);
             return;
         }
 

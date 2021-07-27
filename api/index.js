@@ -3,11 +3,9 @@ import demoteUserHavingUserId from "./demoteUser.js";
 import findSystemAdminMatchingBotAccount from "./findSystemAdminMatchingBotAccount.js";
 import findSystemAdministrators from "./findSystemAdministrators.js";
 import findTeamByName from "./findTeamByName.js";
-import findTeamAdminMatchingBotAccount from "./findTeamAdminMatchingBotAccount.js";
 import findTeamMembers from "./findTeamMembers.js";
 import getMainChannelsNames from "./getMainChannelsNames.js";
 import postMessage from "./postMessage.js";
-import postCommand from "./postCommand.js";
 import promoteGuest from "./promoteGuest.js";
 import searchUserByTerm from "./searchUserByTerm.js";
 
@@ -42,12 +40,10 @@ export {
     demoteUserHavingUserId,
     findSystemAdministrators,
     findSystemAdminMatchingBotAccount,
-    findTeamAdminMatchingBotAccount,
     findTeamByName,
     findTeamMembers,
     getMainChannelsNames,
     postMessage,
-    postCommand,
     promoteGuest,
     searchUserByTerm
 };

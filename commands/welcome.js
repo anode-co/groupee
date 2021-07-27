@@ -2,10 +2,9 @@
 import isValidUserIdFormat from "../validation/userId.js";
 import searchUserByTerm from "../api/searchUserByTerm.js";
 import runWelcomeFlow from "../workflow/welcome.js";
-import {chainError} from "../api/index.js";
 import reply from "./reply.js";
 
-const wel = (ctx /*:Context_t*/, words /*:Array<string>*/, m /*:Message_t*/) => {
+const wel = async (ctx /*:Context_t*/, words /*:Array<string>*/, m /*:Message_t*/) => {
     const userIdOrUsername = words[0];
     const user = ctx.mm.getUserByID(userIdOrUsername);
 
@@ -19,7 +18,8 @@ const wel = (ctx /*:Context_t*/, words /*:Array<string>*/, m /*:Message_t*/) => 
         typeof user !== 'undefined' &&
         isValidUserIdFormat(user.id)
     ) {
-        return runWelcomeFlow(ctx, user.id, m);
+        await runWelcomeFlow(ctx, user.id, m);
+        return;
     }
 
     let username = userIdOrUsername;
@@ -27,17 +27,16 @@ const wel = (ctx /*:Context_t*/, words /*:Array<string>*/, m /*:Message_t*/) => 
         username = userIdOrUsername.substr(1, userIdOrUsername.length - 1);
     }
 
-    return searchUserByTerm(ctx, `${username}`)
-        .then(({id: userId}) => {
-            if (!isValidUserIdFormat(userId)) {
-                throw `Could not find user id from term ${username}`;
-            }
+    try {
+        let {id: userId} = await searchUserByTerm(ctx, `${username}`);
+        if (!isValidUserIdFormat(userId)) {
+            throw `Could not find user id from term ${username}`;
+        }
 
-            return runWelcomeFlow(ctx, userId, m);
-        }, chainError)
-        .catch(e => {
-            reply(ctx, `Could not execute welcome command with error: \n${e}`, m);
-        });
+        await runWelcomeFlow(ctx, userId, m);
+    } catch(e) {
+        reply(ctx, `Could not execute welcome command with error: \n${e}`, m);
+    }
 };
 
 export default wel;
