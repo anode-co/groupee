@@ -35,6 +35,23 @@ const message = async (ctx, m /*:Message_t*/) => {
         return;
     }
 
+    const isMessagePostedToDirectMessageChannel = m.data.channel_name.indexOf('__') !== -1;
+    if (isMessagePostedToDirectMessageChannel) {
+        // @see https://github.com/thierrymarianne/contrib-matterfoss/blob/99b26af24bf63be55acc3ba0e67843a0a36506e0/model/channel.go#L354-L359
+        const directChannelUserIds = m.data.channel_name.split('__');
+        if (ctx.mut.systemAdministrators.length < 1) {
+            ctx.error('System administrators should be known before replying to reacting to events.');
+            return;
+        }
+
+        if (directChannelUserIds.some(
+            userId => ctx.mut.systemAdministrators.find(a => a.id === userId) === undefined
+        )) {
+            ctx.error('Only system administrators can send commands to bot account.');
+            return;
+        }
+    }
+
     if (
         teamMembers
         .filter(teamMember =>

@@ -59,41 +59,30 @@ const handlePromoteGuest = ({ctx, method, request, response, config}) /*: Promis
 
             const teamId = params.team_id;
             if (!teamId) {
-                ctx.error('Missing team id');
+                ctx.debug('Missing team id');
                 sendInvalidCommandResponse();
                 return;
             }
 
-            if (!params.channel_name || params.channel_name.indexOf('__') === -1) {
-                ctx.error('Missing channel name');
+            let requester_id = params.user_id;
+            if (typeof params.user_id === 'undefined') {
+                ctx.debug('Missing id of promotion requester');
                 sendInvalidCommandResponse();
                 return;
-            }
-
-            const members = params.channel_name.split('__');
-
-            if (members.length !== 2) {
-                ctx.error('There should be two user ids represented by the channel name');
-                return;
-            }
-
-            let requester_id = members[1];
-            if (members[0] !== ctx.mut.botId) {
-                requester_id = members[0];
             }
 
             const teamMembers = await findTeamMembers(ctx, teamId);
             const requester = teamMembers.find(teamMember => teamMember.user_id === requester_id);
 
             if (requester.scheme_guest) {
-                ctx.error('Guests can not promote other guests');
+                ctx.info('Guests can not promote other guests');
                 sendInvalidCommandResponse();
                 return;
             }
 
             if (routeMatches) {
                 try {
-                    let {id: userId} = await searchUserByTerm(ctx, `${username}`)
+                    let {id: userId} = await searchUserByTerm(ctx, `${username}`);
                     await promoteGuest(ctx, userId);
                 } catch(e) {
                     ctx.error('Could not promote guest', e);
