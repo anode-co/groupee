@@ -1,7 +1,6 @@
 
 import {
     chainError,
-    demoteUserHavingUserId,
     findTeamByName,
     postMessage
 } from "../api/index.js";
@@ -91,7 +90,6 @@ const runWelcomeFlow = async (ctx /*:Context_t*/, userId /*:string */, m /*:Mess
         let {id: teamId} = await findTeamByName(ctx);
         let success = await postWelcomeMessage(ctx, {teamId, userId});
         await reply(ctx, success, m);
-        await demoteUserHavingUserId(ctx, userId);
     } catch(e) {
         ctx.error(e);
         reply(ctx, `Could not run welcome flow with error: \n${e}`, m);

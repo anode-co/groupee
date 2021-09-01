@@ -1,6 +1,5 @@
 
 import addMemberToMainChannels from "./addMemberToMainChannels.js";
-import demoteUserHavingUserId from "./demoteUser.js";
 import findSystemAdminMatchingBotAccount from "./findSystemAdminMatchingBotAccount.js";
 import findSystemAdministrators from "./findSystemAdministrators.js";
 import findTeamByName from "./findTeamByName.js";
@@ -38,7 +37,6 @@ const makeApiCallPromise = (ctx, uri, method, then, params = null) /*: Promise<a
 export {
     addMemberToMainChannels,
     chainError,
-    demoteUserHavingUserId,
     findSystemAdministrators,
     findSystemAdminMatchingBotAccount,
     findTeamByName,
