@@ -35,12 +35,12 @@ const startServer = (ctx /*: Context_t */, config) => {
         }
     });
 
-    server.listen(config.serverPort, (error) => {
+    server.listen(config.serverPort, config.serverHost, (error) => {
         if (error) {
             return error(error);
         }
 
-        ctx.info(`Server listening on port ${config.serverPort}`);
+        ctx.info(`Server listening from host ${config.serverHost} and port ${config.serverPort}`);
     });
 
     return server;
