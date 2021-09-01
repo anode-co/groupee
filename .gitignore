@@ -1,5 +1,6 @@
 eventlog-*
 config.js
+config.*.js
 mattermost-client
 node_modules
 db.json
