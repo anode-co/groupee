@@ -40,7 +40,7 @@ const addMemberToMainChannels = (ctx /*:Context_t*/, teamId, userId) /*: Promise
                         }
                     )
                 };
-            })
+            });
 
             resolve({ invites });
         }
