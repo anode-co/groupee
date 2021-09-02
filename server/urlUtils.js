@@ -3,7 +3,7 @@ import {URL} from "url";
 
 const getBaseURL = (config) => {
     const port = config.serverPort === 80 ? '' : `:${config.serverPort}`;
-    const host = config.serverHost === '::1' ? '[::1]' : `:${config.serverHost}`;
+    const host = config.serverHost === '::1' ? '[::1]' : `${config.serverHost}`;
 
     return `http://${host}${port}`;
 };
