@@ -1,9 +1,9 @@
 import {URL} from "url";
 
-const url = (ctx) => {
-    const protocol = 'http://';
+const getBaseURL = (config) => {
+    const port = config.serverPort === 80 ? '' : `:${config.serverPort}`;
 
-    return `${protocol}localhost:${ctx.cfg.serverPort}`;
+    return `http://${config.serverHost}:${port}`;
 };
 
 const params = (teamId, channel, userId, username) => {
@@ -22,15 +22,11 @@ const queryString = (params) => {
 };
 
 const requestUrl = (config, request) => {
-    const protocol = 'http://';
-    const host = 'localhost';
-    const port = config.serverPort === 80 ? '' : `:${config.serverPort}`;
-
-    return new URL(request.url, `${protocol}${host}${port}`);
+    return new URL(request.url, getBaseURL(config));
 };
 
 export default {
-    url,
+    getBaseURL,
     params,
     queryString,
     requestUrl

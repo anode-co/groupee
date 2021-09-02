@@ -30,7 +30,7 @@ const guardAgainstMissingParams = (ctx, requestUrl) => {
         throw 'Channel id is required to post a tour message.';
     }
 
-    const url = urlUtils.url(ctx);
+    const url = urlUtils.getBaseURL(ctx.cfg);
     const queryString = urlUtils.queryString({
         team_id: teamId,
         channel_id: channelId,

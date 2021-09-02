@@ -45,7 +45,7 @@ const postWelcomeMessage = async (ctx, {teamId, userId}) => {
                 }
             );
 
-            const url = Server.urlUtils.url(ctx);
+            const url = Server.urlUtils.getBaseURL(ctx.cfg);
             const queryString = Server.urlUtils.queryString(
                 Server.urlUtils.params(teamId, channel, userId, username)
             );
