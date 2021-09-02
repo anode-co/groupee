@@ -2,10 +2,43 @@
 import {URL} from "url";
 
 const getBaseURL = (config) => {
-    const port = config.serverPort === 80 ? '' : `:${config.serverPort}`;
+    let port = config.externalPort === 80 ? '' : `:${config.externalPort}`;
+    let scheme = 'https://';
+
+    if (
+        config.externalPort === 443 &&
+        (
+            !config.externalScheme || (
+                typeof config.externalScheme === 'string' &&
+                config.externalScheme.toLowerCase() !== 'https'
+            )
+        )
+    ) {
+        throw 'Inconsistent configuration. Secure HTTP port and scheme should match.';
+    }
+
+    if (config.externalPort === 443) {
+        port = '';
+    }
+
+    if (
+        !config.externalScheme ||
+        !config.externalPort || (
+            typeof config.externalPort === 'number' &&
+            config.externalPort === 80
+        )
+    ) {
+        scheme = 'http://';
+    }
+
+    if (['https://', 'http://'].includes(config.externalScheme)) {
+        scheme = config.externalScheme;
+    }
+
+
     const host = config.serverHost === '::1' ? '[::1]' : `${config.serverHost}`;
 
-    return `http://${host}${port}`;
+    return `${scheme}${host}${port}`;
 };
 
 const params = (teamId, channel, userId, username) => {

@@ -43,6 +43,9 @@ export default {
     team: 'yourteam',
     wssPort: 443,
     httpPort: 80,
+    externalScheme: "https",
+    externalHost: "staging.pkt.chat",
+    externalPort: "443",
     serverPort: 3000,
     // A prefix can be added to the route paths
     routePrefix: '',
