@@ -1,7 +1,6 @@
 import urlUtils from "../../urlUtils.js";
 
 import handleAcceptRules from "./acceptRules.js";
-import handlePromoteGuest from "./promoteGuest.js";
 
 const sendResponse = (response, updatePost = {}, statusCode = 200) => {
     response.writeHead(statusCode, {"Content-Type": "application/json"});
@@ -61,5 +60,4 @@ export {
 
 export default {
     handleAcceptRules,
-    handlePromoteGuest
 };

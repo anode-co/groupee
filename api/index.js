@@ -4,7 +4,6 @@ import createDirectChannel from "./createDirectChannel.js";
 import findTeamByName from "./findTeamByName.js";
 import findTeamMembers from "./findTeamMembers.js";
 import postMessage from "./postMessage.js";
-import promoteGuest from "./promoteGuest.js";
 import searchUserByTerm from "./searchUserByTerm.js";
 
 const chainError = err => Promise.reject(err);
@@ -47,7 +46,6 @@ export {
     findTeamByName,
     findTeamMembers,
     postMessage,
-    promoteGuest,
     searchUserByTerm
 };
 

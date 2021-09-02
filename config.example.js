@@ -1,6 +1,4 @@
 
-const invalidPromoteGuestCommand = 'Invalid promote command for @{{ username }} member';
-
 const tour = `
  - The main channels on this server are
 {{ main_channels_names }}
@@ -53,7 +51,6 @@ export default {
     username_prefix: '',
     templatingParams: {
         labelAcceptRules,
-        invalidPromoteGuestCommand,
         mainChannelsNames,
         reportAbuseEmail,
         rulesRejectionRedirectionURL: 'https://rules-rejected.example.com',
