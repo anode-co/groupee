@@ -21,13 +21,6 @@ const startServer = (ctx /*: Context_t */, config) => {
             method,
             request,
             response
-        }) ||
-        await Routes.Handlers.handlePromoteGuest({
-            ctx,
-            config,
-            method,
-            request,
-            response
         });
 
         if (!routeMatches) {
