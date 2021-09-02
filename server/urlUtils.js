@@ -2,8 +2,9 @@
 import {URL} from "url";
 
 const getBaseURL = (config) => {
-    let port = config.externalPort === 80 ? '' : `:${config.externalPort}`;
     let scheme = 'https://';
+    const host = config.externalHost === '::1' ? '[::1]' : `${config.externalHost}`;
+    let port = config.externalPort === 80 ? '' : `:${config.externalPort}`;
 
     if (
         config.externalPort === 443 &&
@@ -34,9 +35,6 @@ const getBaseURL = (config) => {
     if (['https://', 'http://'].includes(config.externalScheme)) {
         scheme = config.externalScheme;
     }
-
-
-    const host = config.serverHost === '::1' ? '[::1]' : `${config.serverHost}`;
 
     return `${scheme}${host}${port}`;
 };
