@@ -71,7 +71,8 @@ type Context_t = {
     debug: (...arg: any[]) => void,
     info: (...arg: any[]) => void,
     error: (...arg: any[]) => void,
-    backtrace: () => void
+    backtrace: () => void,
+    warning: (...arg: any[]) => void
 }
 */
 

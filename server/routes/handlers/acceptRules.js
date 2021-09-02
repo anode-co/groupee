@@ -22,7 +22,19 @@ const handleAcceptRules = ({ctx, method, request, response, config}) => {
         });
 
     if (routeMatches) {
-        const {teamId, userId} = guardAgainstMissingParams(ctx, requestUrl);
+        const {teamId, userId, token} = guardAgainstMissingParams(ctx, requestUrl);
+
+        if (token !== ctx.cfg.interactiveMessagesToken) {
+            sendResponse(
+                response,
+                {
+                    response_type: "in_channel",
+                    text: "Unauthorized",
+                },
+                401
+            );
+            return;
+        }
 
         addMemberToMainChannels(ctx, teamId, userId)
             .then(({ invites }) => {

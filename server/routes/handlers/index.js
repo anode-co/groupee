@@ -3,8 +3,8 @@ import urlUtils from "../../urlUtils.js";
 import handleAcceptRules from "./acceptRules.js";
 import handlePromoteGuest from "./promoteGuest.js";
 
-const sendResponse = (response, updatePost = {}) => {
-    response.writeHead(200, {"Content-Type": "application/json"});
+const sendResponse = (response, updatePost = {}, statusCode = 200) => {
+    response.writeHead(statusCode, {"Content-Type": "application/json"});
     response.end(JSON.stringify(updatePost));
 };
 
@@ -30,6 +30,11 @@ const guardAgainstMissingParams = (ctx, requestUrl) => {
         throw 'Channel id is required to post a tour message.';
     }
 
+    const token = requestUrl.searchParams.get('token');
+    if (!token) {
+        throw 'Token is required to post a tour message.';
+    }
+
     const url = urlUtils.getBaseURL(ctx.cfg);
     const queryString = urlUtils.queryString({
         team_id: teamId,
@@ -42,6 +47,7 @@ const guardAgainstMissingParams = (ctx, requestUrl) => {
         queryString,
         teamId,
         userId,
+        token
     };
 };
 

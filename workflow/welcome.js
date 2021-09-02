@@ -65,6 +65,7 @@ const postWelcomeMessage = async (ctx, {teamId, userId}) => {
                                     "team_id": teamId,
                                     "context": {
                                         "action": actions.ACTION_ID_ACCEPT_RULES,
+                                        "token": ctx.cfg.interactiveMessagesToken
                                     }
                                 }
                             }
