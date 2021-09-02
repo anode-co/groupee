@@ -1,6 +1,6 @@
 import {isValidUserIdFormat} from "../../validation/index.js";
 import {runWelcomeFlow} from "../../workflow/index.js";
-import {searchUserById} from "../../../matterfoss-bot-promotion/api/index.js";
+import {searchUserById} from "../../api/index.js";
 
 const handleUserAddedEvent = async (ctx /*: Context_t */, m) => {
     const userId = m.data.user_id;
