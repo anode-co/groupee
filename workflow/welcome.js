@@ -24,6 +24,11 @@ const postWelcomeMessage = (ctx, {teamId, userId}) => {
             ctx.mm.getUserDirectMessageChannel(
                 userId,
                 channel => {
+                    if (!channel.id) {
+                        reject(channel);
+                        return;
+                    }
+
                     const username = getUsernameByUserId({ctx, userId});
 
                     const formattedMessage = Templating.formatWelcomeMessage(
