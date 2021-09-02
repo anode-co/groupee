@@ -46,9 +46,9 @@ export default {
     externalScheme: "https",
     externalHost: "staging.pkt.chat",
     externalPort: "443",
+    // A prefix to be added to the route paths
+    externalRoutePrefix: '',
     serverPort: 3000,
-    // A prefix can be added to the route paths
-    routePrefix: '',
     // Required for interactive messages
     interactiveMessagesToken: "FILL ME",
     // "new_user" event handling will only affect users

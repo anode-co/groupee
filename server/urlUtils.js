@@ -36,7 +36,7 @@ const getBaseURL = (config) => {
         scheme = config.externalScheme;
     }
 
-    return `${scheme}${host}${port}`;
+    return `${scheme}${host}${port}${config.externalRoutePrefix}`;
 };
 
 const params = (teamId, channel, userId, username) => {
