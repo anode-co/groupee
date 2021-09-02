@@ -1,5 +1,4 @@
 import {
-    findSystemAdminMatchingBotAccount,
     findTeamByName,
     findTeamMembers
 } from "../api/index.js";
@@ -15,11 +14,9 @@ const channelById = (ctx, channelId, then) => {
 
 const message = async (ctx, m /*:Message_t*/) => {
     let teamMembers;
-    let botAccount;
 
     try {
         let {id: teamId} = await findTeamByName(ctx);
-        botAccount = await findSystemAdminMatchingBotAccount(ctx);
         teamMembers = await findTeamMembers(ctx, teamId);
     } catch (e) {
         ctx.error(e);
@@ -27,10 +24,6 @@ const message = async (ctx, m /*:Message_t*/) => {
 
         return;
     }
-
-    ctx.mut.botAccount = botAccount;
-
-    ctx.debug(`Bot account has user id "${botAccount.id}"`);
 
     if (!m._channel || typeof m._channel.name !== 'string') {
         return;
@@ -122,6 +115,8 @@ const connect = (ctx) => {
 
     ctx.mm.on('meLoaded', (me) => {
         ctx.mut.botId = me.id;
+        ctx.mut.botAccount = me;
+        ctx.debug(`Bot account has user id "${me.id}"`);
     });
 
     ctx.mm.on('message', (m) => {

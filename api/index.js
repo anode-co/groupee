@@ -2,8 +2,6 @@
 import addMemberToMainChannels from "./addMemberToMainChannels.js";
 import findTeamByName from "./findTeamByName.js";
 import findTeamMembers from "./findTeamMembers.js";
-import findUserMatchingBotAccount from "./findUserMatchingBotAccount.js";
-import getUsersStats from "./getUsersStats.js";
 import postMessage from "./postMessage.js";
 import promoteGuest from "./promoteGuest.js";
 import searchUserByTerm from "./searchUserByTerm.js";
@@ -46,8 +44,6 @@ export {
     chainError,
     findTeamByName,
     findTeamMembers,
-    findUserMatchingBotAccount,
-    getUsersStats,
     postMessage,
     promoteGuest,
     searchUserByTerm
