@@ -65,7 +65,7 @@ type Context_t = {
         botAccount: any,
         botId: string,
         server: any,
-        systemAdministrators: Array<any>,
+        users: Array<any>,
         teamMembers: Array<any>,
     },
     debug: (...arg: any[]) => void,
