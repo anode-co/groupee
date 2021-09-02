@@ -6,6 +6,7 @@ import {
 import { COMMANDS, reply } from '../commands/index.js';
 import isValidUserIdFormat from '../validation/userId.js';
 import runWelcomeFlow from "../workflow/welcome.js";
+import {searchUserById} from "../../matterfoss-bot-promotion/api/index.js";
 
 const channelById = (ctx, channelId, then) => {
     const chan = ctx.mm.getChannelByID(channelId);
@@ -179,13 +180,26 @@ const connect = (ctx) => {
 
     ctx.mm.on('raw_message', async (m) => {
         if (m.event === 'new_user') {
+            const userId = m.data.user_id;
+
             if (!m.data) {
-            } else if (!isValidUserIdFormat(m.data.user_id)) {
+            } else if (!isValidUserIdFormat(userId)) {
                 ctx.error('Invalid user id');
                 return;
             }
 
-            await runWelcomeFlow(ctx, m.data.user_id, m);
+            const user = await searchUserById(ctx, userId);
+            const usernamePrefix = ctx.cfg.username_prefix;
+
+            if (
+                typeof usernamePrefix === 'string' &&
+                user.username.startsWith(usernamePrefix)
+            ) {
+                await runWelcomeFlow(ctx, m.data.user_id, m);
+            } else {
+                ctx.info(`Did not take care of user having username not starting with prefix ("${usernamePrefix}")`);
+            }
+
             return;
         }
 

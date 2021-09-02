@@ -46,6 +46,9 @@ export default {
     wssPort: 443,
     httpPort: 80,
     serverPort: 3000,
+    // "new_user" event handling will only affect users
+    // having username satisfying the following prefix
+    username_prefix: '',
     templatingParams: {
         labelAcceptRules,
         invalidPromoteGuestCommand,
