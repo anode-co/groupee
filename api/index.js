@@ -1,5 +1,6 @@
 
 import addMemberToMainChannels from "./addMemberToMainChannels.js";
+import createDirectChannel from "./createDirectChannel.js";
 import findTeamByName from "./findTeamByName.js";
 import findTeamMembers from "./findTeamMembers.js";
 import postMessage from "./postMessage.js";
@@ -42,6 +43,7 @@ const makeApiCallPromise = (ctx, uri, method, then, params = null) /*: Promise<a
 export {
     addMemberToMainChannels,
     chainError,
+    createDirectChannel,
     findTeamByName,
     findTeamMembers,
     postMessage,

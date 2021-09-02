@@ -1,7 +1,4 @@
 
-import runWelcomeFlow, { postTourMessage } from './welcome.js';
+import runWelcomeFlow from './welcome.js';
 
-export {
-    runWelcomeFlow,
-    postTourMessage
-};
+export {runWelcomeFlow};
