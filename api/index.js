@@ -26,7 +26,14 @@ const makeApiCallPromise = (ctx, uri, method, then, params = null) /*: Promise<a
                 method,
                 uri,
                 params,
-                (data, headers) => then(data, resolve, headers, reject)
+                (data, headers) => {
+                    if (typeof data === 'object' && data.error) {
+                        reject(data);
+                        return;
+                    }
+
+                    return then(data, resolve, headers, reject);
+                }
             );
         } catch (e) {
             reject(e);

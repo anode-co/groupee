@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start:dev-server": "MATTERMOST_LOG_LEVEL=debug MATTERMOST_USE_TLS=false node index.js",
-    "start:prod-server": "MATTERMOST_LOG_LEVEL=info MATTERMOST_TLS_VERIFY=true MATTERMOST_USE_TLS=true node index.js",
+    "start:prod-server": "MATTERMOST_LOG_LEVEL=info MATTERMOST_TLS_VERIFY=true MATTERMOST_USE_TLS=true node --trace-warnings index.js -- WELCOME_FLOW",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Anode LLC",
