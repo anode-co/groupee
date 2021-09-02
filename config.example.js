@@ -44,6 +44,8 @@ export default {
     wssPort: 443,
     httpPort: 80,
     serverPort: 3000,
+    // A prefix can be added to the route paths
+    routePrefix: '',
     // Required for interactive messages
     interactiveMessagesToken: "FILL ME",
     // "new_user" event handling will only affect users

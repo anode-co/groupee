@@ -18,7 +18,7 @@ const handleAcceptRules = ({ctx, method, request, response, config}) => {
         {method, pathname},
         {
             expectedMethod: METHOD_POST,
-            expectedRoute: Routes.routes.ROUTE_ACCEPT_RULES
+            expectedRoute: `${ctx.cfg.routePrefix}${Routes.routes.ROUTE_ACCEPT_RULES}`
         });
 
     if (routeMatches) {
