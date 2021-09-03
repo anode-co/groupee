@@ -73,7 +73,7 @@ const postWelcomeMessage = async (ctx, {teamId, userId}) => {
                 ]
             };
 
-            ctx.info({
+            ctx.debug({
                 props: props.attachments[0].actions,
                 integration: props.attachments[0].actions[0].integration
             });

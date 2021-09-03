@@ -1,5 +1,5 @@
 
-import { handleUserAddedEvent } from "./event/index.js";
+import {handleNewUserEvent} from "./event/index.js";
 
 const connect = (ctx) => {
     ctx.mm.login(ctx.cfg.email, ctx.cfg.passwd);
@@ -19,12 +19,14 @@ const connect = (ctx) => {
             ctx.info({event: m.event});
         }
 
-        if (m.event === 'user_added') {
+        if (m.event === 'new_user') {
             try {
-                await handleUserAddedEvent(ctx, m);
+                setTimeout(async () => {
+                    await handleNewUserEvent(ctx, m);
+                }, 5 * 1000);
             } catch (e) {
                 ctx.error(
-                    `Can not handle "user_added" event for user having id ${m.data.user_id}`,
+                    `Can not handle "new_user" event for user having id ${m.data.user_id}`,
                     e
                 );
             }

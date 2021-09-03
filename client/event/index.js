@@ -1,4 +1,4 @@
 
-import handleUserAddedEvent from './userAddedEvent.js';
+import handleNewUserEvent  from './newUserEvent.js';
 
-export { handleUserAddedEvent };
+export {handleNewUserEvent};
