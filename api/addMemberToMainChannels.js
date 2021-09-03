@@ -27,12 +27,9 @@ const addMemberToMainChannels = (ctx /*:Context_t*/, teamId, userId) /*: Promise
                         ctx,
                         `/channels/${channel.id}/members`,
                         'POST',
-                        (result) => {
-                            ctx.debug(
-                                `Making promise to invite user having id "${userId}" to "${channel.name}" channel`,
-                                result
-                            );
-                        },
+                        (result) => ctx.debug(
+                            `Making promise to invite user having id "${userId}" to "${channel.name}" channel`
+                        ),
                         {
                             "user_id": userId,
                             "channel_id": channel.id,
