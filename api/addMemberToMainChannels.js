@@ -12,7 +12,7 @@ const addMemberToMainChannels = (ctx /*:Context_t*/, teamId, userId) /*: Promise
             }
 
             if (mainChannels.length === 0) {
-                throw 'No main channel name has been defined. See config.js.';
+                throw 'No channel has been found.';
             }
 
             const invites = mainChannels

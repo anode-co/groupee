@@ -20,7 +20,14 @@ const connect = (ctx) => {
         }
 
         if (m.event === 'user_added') {
-            await handleUserAddedEvent(ctx, m);
+            try {
+                await handleUserAddedEvent(ctx, m);
+            } catch (e) {
+                ctx.error(
+                    `Can not handle "user_added" event for user having id ${m.data.user_id}`,
+                    e
+                );
+            }
         }
     });
 };

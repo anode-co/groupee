@@ -54,6 +54,8 @@ export default {
     // "new_user" event handling will only affect users
     // having username satisfying the following prefix
     username_prefix: '',
+    // A main public channel to which guests are to be invited systematically
+    mainChannel: 'town-square',
     templatingParams: {
         labelAcceptRules,
         mainChannelsNames,
