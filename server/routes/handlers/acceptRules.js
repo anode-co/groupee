@@ -64,9 +64,12 @@ const handleAcceptRules = async ({ctx, method, request, response, config}) => {
             ctx.error('Could not get main channels names', e);
         }
 
-        Object.keys(invites).forEach(k => invites[k].inviteToChannel());
+        let mainChannelsNames = [];
+        if (invites.length > 0) {
+            Object.keys(invites).forEach(k => invites[k].inviteToChannel());
+            mainChannelsNames = Object.keys(invites).map(k => invites[k].name);
+        }
 
-        const mainChannelsNames = Object.keys(invites).map(k => invites[k].name);
         const formattedMessage = Templating.formatTourMessage(
             config.templatingParams.tour,
             {main_channels_names: mainChannelsNames}

@@ -2,7 +2,13 @@
 import makeApiCallPromise, {getTeamPrivateChannels} from "./index.js";
 
 const addMemberToMainChannels = async (ctx /*:Context_t*/, teamId, userId) /*: Promise<any>*/ => {
-    const privateChannels = await getTeamPrivateChannels(ctx);
+    let privateChannels = [];
+
+    try {
+        privateChannels = await getTeamPrivateChannels(ctx);
+    } catch (e) {
+        ctx.error(e);
+    }
 
     return makeApiCallPromise(
         ctx,
