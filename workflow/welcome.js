@@ -4,7 +4,6 @@ import {
     findTeamByName,
     postMessage
 } from "../api/index.js";
-import { reply } from "../commands/index.js";
 import Server from '../server/index.js';
 
 import Templating from '../templating/index.js';
@@ -98,11 +97,10 @@ const postWelcomeMessage = async (ctx, {teamId, userId}) => {
 const runWelcomeFlow = async (ctx /*:Context_t*/, userId /*:string */, m /*:Message_t*/)/*: Promise<any>|void */ => {
     try {
         let {id: teamId} = await findTeamByName(ctx);
-        let success = await postWelcomeMessage(ctx, {teamId, userId});
-        await reply(ctx, success, m);
+        await postWelcomeMessage(ctx, {teamId, userId});
+        ctx.info(`Successfully posted welcome flow to user having id ${userId}.`);
     } catch(e) {
         ctx.error(e);
-        reply(ctx, `Could not run welcome flow with error: \n${e.message}`, m);
     }
 };
 
