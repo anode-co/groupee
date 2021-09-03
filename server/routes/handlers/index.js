@@ -13,7 +13,9 @@ const matchingRoute = ({method, pathname}, {expectedMethod, expectedRoute}) => {
 
 const METHOD_POST = 'POST';
 
-const guardAgainstMissingParams = (ctx, requestUrl) => {
+const guardAgainstMissingParams = async (ctx, request) => {
+    const requestUrl = urlUtils.requestUrl(ctx.cfg, request);
+
     const teamId = requestUrl.searchParams.get('team_id');
     if (!teamId) {
         throw 'Team id is required to get main channel names';
@@ -29,10 +31,17 @@ const guardAgainstMissingParams = (ctx, requestUrl) => {
         throw 'Channel id is required to post a tour message.';
     }
 
-    const token = requestUrl.searchParams.get('token');
-    if (!token) {
+    const buffers = [];
+    for await (const chunk of request) {
+        buffers.push(chunk);
+    }
+
+    const body = JSON.parse(Buffer.concat(buffers).toString());
+    if (!body.context || !body.context.token) {
         throw 'Token is required to post a tour message.';
     }
+
+    const token = body.context.token;
 
     const url = urlUtils.getBaseURL(ctx.cfg);
     const queryString = urlUtils.queryString({

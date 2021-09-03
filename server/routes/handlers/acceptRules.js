@@ -11,7 +11,7 @@ import urlUtils from "../../urlUtils.js";
 import Templating from "../../../templating/index.js";
 import Routes from '../index.js';
 
-const handleAcceptRules = ({ctx, method, request, response, config}) => {
+const handleAcceptRules = async ({ctx, method, request, response, config}) => {
     const requestUrl = urlUtils.requestUrl(config, request);
     const pathname = requestUrl.pathname;
     let routeMatches = matchingRoute(
@@ -22,9 +22,29 @@ const handleAcceptRules = ({ctx, method, request, response, config}) => {
         });
 
     if (routeMatches) {
-        const {teamId, userId, token} = guardAgainstMissingParams(ctx, requestUrl);
+        let params;
+
+        try {
+            params = await guardAgainstMissingParams(ctx, request);
+        } catch (e) {
+            ctx.error(`Can not accept rules: some params are missing.`, e);
+
+            sendResponse(
+                response,
+                {
+                    response_type: "in_channel",
+                    text: `Bad request ${e.message}`,
+                },
+                400
+            );
+            return;
+        }
+
+        let {teamId, userId, token} = params;
 
         if (token !== ctx.cfg.interactiveMessagesToken) {
+            ctx.warning(`Invalid token used by client: "${token}"`);
+
             sendResponse(
                 response,
                 {
