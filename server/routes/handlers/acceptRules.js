@@ -6,7 +6,7 @@ import {
     sendResponse
 } from './index.js';
 
-import {chainError, addMemberToMainChannels} from "../../../api/index.js";
+import {addMemberToMainChannels} from "../../../api/index.js";
 import urlUtils from "../../urlUtils.js";
 import Templating from "../../../templating/index.js";
 import Routes from '../index.js';
@@ -56,31 +56,34 @@ const handleAcceptRules = async ({ctx, method, request, response, config}) => {
             return;
         }
 
-        addMemberToMainChannels(ctx, teamId, userId)
-            .then(({ invites }) => {
-                Object.keys(invites).forEach(k => invites[k].inviteToChannel());
+        let invites;
 
-                const mainChannelsNames = Object.keys(invites).map(k => invites[k].name);
-                const formattedMessage = Templating.formatTourMessage(
-                    config.templatingParams.tour,
-                    {main_channels_names: mainChannelsNames}
-                );
+        try {
+            ({invites} = await addMemberToMainChannels(ctx, teamId, userId));
+        } catch (e) {
+            ctx.error('Could not get main channels names', e);
+        }
 
-                sendResponse(
-                    response,
-                    {
-                        update: {
-                            message: [
-                                config.templatingParams.updatedAcceptedRulesMessage,
-                                formattedMessage
-                            ].join("\n\n"),
-                            props: {}
-                        },
-                    }
-                );
+        Object.keys(invites).forEach(k => invites[k].inviteToChannel());
 
-            }, chainError)
-            .catch(e => ctx.error('Could not get main channels names', e));
+        const mainChannelsNames = Object.keys(invites).map(k => invites[k].name);
+        const formattedMessage = Templating.formatTourMessage(
+            config.templatingParams.tour,
+            {main_channels_names: mainChannelsNames}
+        );
+
+        sendResponse(
+            response,
+            {
+                update: {
+                    message: [
+                        config.templatingParams.updatedAcceptedRulesMessage,
+                        formattedMessage
+                    ].join("\n\n"),
+                    props: {}
+                },
+            }
+        );
     }
 
     return routeMatches;

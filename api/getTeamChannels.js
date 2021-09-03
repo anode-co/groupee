@@ -1,6 +1,14 @@
-import makeApiCallPromise, {findTeamByName} from "./index.js";
+import makeApiCallPromise, {findTeamByName, getTeamPrivateChannels} from "./index.js";
 
 const getTeamChannels = async (ctx /*:Context_t*/) /*: Promise<any>*/ => {
+    let privateChannels;
+
+    try {
+        privateChannels = await getTeamPrivateChannels(ctx);
+    } catch (e) {
+        ctx.error('Cannot find private channels');
+    }
+
     try {
         const {id: teamId} = await findTeamByName(ctx);
 
@@ -17,7 +25,7 @@ const getTeamChannels = async (ctx /*:Context_t*/) /*: Promise<any>*/ => {
                     throw 'No channel has been found.';
                 }
 
-                resolve(channels);
+                resolve(channels.concat(privateChannels));
         });
     } catch (e) {
         ctx.error('Can not find team channels');
