@@ -2,7 +2,6 @@
 import addMemberToMainChannels from "./addMemberToMainChannels.js";
 import createDirectChannel from "./createDirectChannel.js";
 import findTeamByName from "./findTeamByName.js";
-import getTeamPrivateChannels from "./getTeamPrivateChannels.js";
 import getTeamChannels from "./getTeamChannels.js";
 import postMessage from "./postMessage.js";
 import searchUserById from "./searchUserById.js";
@@ -47,7 +46,6 @@ export {
     createDirectChannel,
     findTeamByName,
     getTeamChannels,
-    getTeamPrivateChannels,
     postMessage,
     searchUserById,
     searchUserByTerm
