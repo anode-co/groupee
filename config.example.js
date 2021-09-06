@@ -54,6 +54,11 @@ export default {
     // "new_user" event handling will only affect users
     // having username satisfying the following prefix
     username_prefix: '',
+    // Collections of welcome messages where name is a guest username
+    introductions: [
+        name => `Welcome ${name} to the community :+1:`,
+    ],
+    mainChannelName: '',
     templatingParams: {
         labelAcceptRules,
         mainChannelsNames,

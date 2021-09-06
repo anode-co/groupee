@@ -1,7 +1,9 @@
 
 import {
-    chainError, createDirectChannel,
+    chainError,
+    createDirectChannel,
     findTeamByName,
+    introduceNewcomer,
     postMessage
 } from "../api/index.js";
 import Server from '../server/index.js';
@@ -85,7 +87,8 @@ const postWelcomeMessage = async (ctx, {teamId, userId}) => {
                 props
             )
             .then(() => {
-                resolve(`Welcome message was successfully posted to user having id ${userId} in channel with id ${channel.id}`);
+                ctx.info(`Welcome message was successfully posted to user having id ${userId} in channel with id ${channel.id}`);
+                resolve({username, userId});
             }, chainError)
             .catch(e => ctx.error({e}));
         } catch (e) {
@@ -97,7 +100,9 @@ const postWelcomeMessage = async (ctx, {teamId, userId}) => {
 const runWelcomeFlow = async (ctx /*:Context_t*/, userId /*:string */, m /*:Message_t*/)/*: Promise<any>|void */ => {
     try {
         let {id: teamId} = await findTeamByName(ctx);
-        await postWelcomeMessage(ctx, {teamId, userId});
+        let {username} = await postWelcomeMessage(ctx, {teamId, userId});
+        await introduceNewcomer(ctx, username, teamId);
+
         ctx.info(`Successfully posted welcome flow to user having id ${userId}.`);
     } catch(e) {
         ctx.error(e);
