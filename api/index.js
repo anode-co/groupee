@@ -2,7 +2,9 @@
 import addMemberToMainChannels from "./addMemberToMainChannels.js";
 import createDirectChannel from "./createDirectChannel.js";
 import findTeamByName from "./findTeamByName.js";
+import getPublicChannelByName from "./getPublicChannelByName.js";
 import getTeamChannels from "./getTeamChannels.js";
+import introduceNewcomer from "./introduceNewcomer.js";
 import postMessage from "./postMessage.js";
 import searchUserById from "./searchUserById.js";
 import searchUserByTerm from "./searchUserByTerm.js";
@@ -45,7 +47,9 @@ export {
     chainError,
     createDirectChannel,
     findTeamByName,
+    getPublicChannelByName,
     getTeamChannels,
+    introduceNewcomer,
     postMessage,
     searchUserById,
     searchUserByTerm
